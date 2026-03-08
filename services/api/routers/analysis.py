@@ -204,3 +204,65 @@ def analysis_temperature(
         },
         meta=meta(),
     )
+
+
+@router.get("/temperature/zonal", response_model=ApiResponse, summary="Zonale Temperaturanomalien")
+def analysis_temperature_zonal(
+    year: int | None = Query(None, description="Jahr (leer = alle Jahre)"),
+):
+    """NASA GISS zonale Temperaturanomalien (ZonAnn.Ts+dSST, 1880–heute)."""
+    import json
+
+    zonal_file = RAW_DIR / "nasa_giss_zonal.json"
+    if not zonal_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "DATA_NOT_FOUND",
+                "message": "nasa_giss_zonal nicht importiert. POST /api/v1/ingest mit source='nasa_giss_zonal'",
+            },
+        )
+
+    data = json.loads(zonal_file.read_text())
+    rows = data["data"]
+    if year is not None:
+        rows = [r for r in rows if r["year"] == year]
+
+    return ApiResponse(
+        data={"zones": data["zones"], "data": rows},
+        meta=meta(),
+    )
+
+
+@router.get("/co2/annual", response_model=ApiResponse, summary="Jährliche CO₂-Mittelwerte")
+def analysis_co2_annual(
+    from_year: int | None = Query(None),
+    to_year: int | None = Query(None),
+):
+    """Jährliche CO₂-Mittelwerte aus Mauna Loa (für Globe-Overlay)."""
+    csv_file = RAW_DIR / "esrl_mauna_loa.csv"
+    if not csv_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "DATA_NOT_FOUND", "message": "esrl_mauna_loa nicht importiert"},
+        )
+
+    series = load_series(csv_file)
+    # Aggregate monatliche Werte → Jahresmittel
+    from collections import defaultdict
+
+    by_year: dict[int, list[float]] = defaultdict(list)
+    for date_str, value in series:
+        y = int(date_str[:4])
+        by_year[y].append(value)
+
+    annual = [
+        {"year": y, "value": round(sum(vals) / len(vals), 2)}
+        for y, vals in sorted(by_year.items())
+        if (from_year is None or y >= from_year) and (to_year is None or y <= to_year)
+    ]
+
+    return ApiResponse(
+        data={"unit": "ppm", "count": len(annual), "series": annual},
+        meta=meta(),
+    )

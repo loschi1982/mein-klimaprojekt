@@ -826,3 +826,164 @@ body {
   color: #10b981;
   border-bottom-color: #10b981;
 }
+
+/* Globe View */
+.globe-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+}
+
+.globe-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.globe-subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.globe-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.globe-btn {
+  background: #334155;
+  color: #f1f5f9;
+  border: 1px solid #475569;
+  border-radius: 7px;
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.globe-btn:hover {
+  background: #475569;
+}
+
+.globe-year-slider {
+  flex: 1;
+  accent-color: #34d399;
+}
+
+.globe-year-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #34d399;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.co2-overlay {
+  position: absolute;
+  top: 5.5rem;
+  right: 0;
+  background: #1e293bcc;
+  border: 1px solid #34d39944;
+  border-radius: 10px;
+  padding: 0.75rem 1.1rem;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  text-align: center;
+}
+
+.co2-overlay-label {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.co2-overlay-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #34d399;
+  line-height: 1.2;
+}
+
+.co2-overlay-value span {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.co2-overlay-source {
+  font-size: 0.68rem;
+  color: #475569;
+  margin-top: 0.2rem;
+}
+
+.globe-legend {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.82rem;
+}
+
+.globe-canvas {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0d0d1a;
+  display: flex;
+  justify-content: center;
+}
+
+.globe-loading,
+.globe-error {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.globe-error code {
+  background: #0f172a;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.globe-zones-table {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.globe-zones-table h3 {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+.globe-zones-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.globe-zones-table th {
+  text-align: left;
+  color: #64748b;
+  font-weight: 500;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #334155;
+}
+
+.globe-zones-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #1e293b;
+}
