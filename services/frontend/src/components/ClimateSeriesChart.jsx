@@ -35,6 +35,16 @@ const SOURCE_META = {
       { y: 1800, color: '#f59e0b', label: '1800 ppb' },
     ],
   },
+  berkeley_earth_global: {
+    title: 'Temperaturanomalie – Berkeley Earth (Land+Ozean)',
+    color: '#fb923c',
+    sourceLabel: 'Berkeley Earth',
+    sourceUrl: 'https://berkeleyearth.org/data/',
+    refLines: [
+      { y: 1.5, color: '#f59e0b', label: '+1,5 °C (Paris-Ziel)' },
+      { y: 2.0, color: '#ef4444', label: '+2,0 °C' },
+    ],
+  },
 }
 
 const CustomTooltip = ({ active, payload, label, unit, color }) => {
