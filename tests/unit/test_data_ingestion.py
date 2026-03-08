@@ -1,5 +1,6 @@
 """Unit Tests für das Data Ingestion Module"""
 import csv
+import json
 import tempfile
 from pathlib import Path
 
@@ -10,6 +11,10 @@ from modules.data_ingestion.ingester import (
     list_datasets,
     list_available_sources,
     _parse_esrl_csv,
+    _parse_giss_csv,
+    _parse_giss_zonal_csv,
+    _normalize_giss_zonal,
+    GISS_ZONES,
 )
 from modules.data_ingestion.sources import get_source, SOURCES
 from modules.data_ingestion.validator import validate_csv, _valid_date
@@ -265,6 +270,154 @@ def test_normalize_esrl_row_count():
         _normalize_esrl(raw, "esrl_mauna_loa", out)
         rows = list(csv.DictReader(open(out)))
     assert len(rows) == 2  # -99.99 und Kommentare herausgefiltert
+
+
+# ── NASA GISS Parser ──────────────────────────────────────────────────────────
+
+SAMPLE_GISS_CSV = """\
+Global-mean monthly, seasonal, and annual means, 1880-present
+Divide by 100 to convert to degrees Celsius
+Year,Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,J-D,D-N,DJF,MAM,JJA,SON
+2020, 138, 188, 194, 146, 120, 123, 107, 113, 106, 118, 148, 150, 138, ***,  ***,  153,  114,  124
+2021, 102,  90,  87,  74,  95,  73,  91, 109, 104, 114, 128, 158,  94, 102,  146,   85,   91,  115
+"""
+
+SAMPLE_GISS_ZONAL_CSV = """\
+GISS Surface Temperature Analysis (GISTEMP v4)
+Divide by 100 to convert to degrees Celsius
+Year,Glob,NHem,SHem,24N-90N,24S-24N,90S-24S,64N-90N,44N-64N,24N-44N,EQU-24N,24S-EQU,44S-24S,64S-44S,90S-64S
+2020,102,125,79,155,82,58,210,140,120,75,70,55,50,40
+2021,94,118,70,148,76,51,200,132,112,68,63,48,43,33
+"""
+
+
+def test_parse_giss_csv_divide_by_100():
+    raw = make_raw_file(SAMPLE_GISS_CSV)
+    rows = _parse_giss_csv(raw, "nasa_giss_global")
+    # 2020 hat 12 gültige Monate, 2021 hat 12 gültige Monate
+    assert len(rows) == 24
+    jan2020 = next(r for r in rows if r["date"] == "2020-01-01")
+    assert jan2020["value"] == pytest.approx(1.38)
+
+
+def test_parse_giss_csv_unit():
+    raw = make_raw_file(SAMPLE_GISS_CSV)
+    rows = _parse_giss_csv(raw, "nasa_giss_global")
+    assert all(r["unit"] == "°C" for r in rows)
+
+
+def test_parse_giss_csv_source():
+    raw = make_raw_file(SAMPLE_GISS_CSV)
+    rows = _parse_giss_csv(raw, "nasa_giss_global")
+    assert all(r["source"] == "nasa_giss_global" for r in rows)
+
+
+def test_parse_giss_csv_date_format():
+    raw = make_raw_file(SAMPLE_GISS_CSV)
+    rows = _parse_giss_csv(raw, "nasa_giss_global")
+    for r in rows:
+        parts = r["date"].split("-")
+        assert len(parts) == 3
+
+
+def test_parse_giss_csv_skips_missing():
+    content = (
+        "Divide by 100 to convert to degrees Celsius\n"
+        "Year,Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec\n"
+        "2020, ***, 100, ***, 100, 100, 100, 100, 100, 100, 100, 100, 100\n"
+    )
+    raw = make_raw_file(content)
+    rows = _parse_giss_csv(raw, "nasa_giss_global")
+    dates = [r["date"] for r in rows]
+    assert "2020-01-01" not in dates
+    assert "2020-02-01" in dates
+
+
+# ── NASA GISS Zonal Parser ─────────────────────────────────────────────────────
+
+def test_giss_zones_list():
+    assert "Glob" in GISS_ZONES
+    assert "64N-90N" in GISS_ZONES
+    assert "90S-64S" in GISS_ZONES
+    assert len(GISS_ZONES) == 14
+
+
+def test_parse_giss_zonal_csv_row_count():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    rows = _parse_giss_zonal_csv(raw)
+    assert len(rows) == 2
+
+
+def test_parse_giss_zonal_csv_year():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    rows = _parse_giss_zonal_csv(raw)
+    years = [r["year"] for r in rows]
+    assert 2020 in years
+    assert 2021 in years
+
+
+def test_parse_giss_zonal_csv_divide_by_100():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    rows = _parse_giss_zonal_csv(raw)
+    row2020 = next(r for r in rows if r["year"] == 2020)
+    assert row2020["Glob"] == pytest.approx(1.02)
+    assert row2020["64N-90N"] == pytest.approx(2.10)
+
+
+def test_parse_giss_zonal_csv_all_zones_present():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    rows = _parse_giss_zonal_csv(raw)
+    row = rows[0]
+    for zone in ["Glob", "NHem", "SHem", "64N-90N", "90S-64S"]:
+        assert zone in row
+
+
+def test_parse_giss_zonal_csv_missing_value():
+    content = (
+        "Divide by 100 to convert to degrees Celsius\n"
+        "Year,Glob,NHem,SHem,24N-90N,24S-24N,90S-24S,64N-90N,44N-64N,24N-44N,EQU-24N,24S-EQU,44S-24S,64S-44S,90S-64S\n"
+        "2020,102,***,79,155,82,58,210,140,120,75,70,55,50,40\n"
+    )
+    raw = make_raw_file(content)
+    rows = _parse_giss_zonal_csv(raw)
+    assert rows[0]["NHem"] is None
+    assert rows[0]["Glob"] == pytest.approx(1.02)
+
+
+def test_normalize_giss_zonal_creates_json():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "zonal.json"
+        result = _normalize_giss_zonal(raw, out)
+        assert result.exists()
+        data = json.loads(result.read_text())
+    assert "zones" in data
+    assert "data" in data
+    assert len(data["data"]) == 2
+
+
+def test_normalize_giss_zonal_zones_list():
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "zonal.json"
+        _normalize_giss_zonal(raw, out)
+        data = json.loads(out.read_text())
+    assert data["zones"] == GISS_ZONES
+
+
+def test_normalize_giss_zonal_default_output_path(tmp_path, monkeypatch):
+    import modules.data_ingestion.ingester as ing
+    monkeypatch.setattr(ing, "RAW_DATA_DIR", tmp_path)
+    raw = make_raw_file(SAMPLE_GISS_ZONAL_CSV)
+    result = _normalize_giss_zonal(raw)
+    assert result.name == "nasa_giss_zonal.json"
+    assert result.exists()
+
+
+def test_nasa_giss_zonal_source_in_sources():
+    source = get_source("nasa_giss_zonal")
+    assert source.parser == "giss_zonal"
+    assert source.unit == "°C"
 
 
 # ── Datums-Hilfsfunktion ──────────────────────────────────────────────────────

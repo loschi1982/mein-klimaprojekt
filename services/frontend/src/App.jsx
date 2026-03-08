@@ -7,6 +7,7 @@ import SimulationChart from './components/SimulationChart'
 import StatsPanel from './components/StatsPanel'
 import AnomalyChart from './components/AnomalyChart'
 import AdminPanel from './components/AdminPanel'
+import GlobeView from './components/GlobeView'
 import './App.css'
 
 const SOURCE_MAP = {
@@ -20,7 +21,7 @@ function Dashboard() {
   const viewId = currentView.id
   const [fromYear, toYear] = timeRange
 
-  const showSlider = !['admin', 'simulation'].includes(viewId)
+  const showSlider = !['admin', 'simulation', 'globe'].includes(viewId)
 
   return (
     <div className="app">
@@ -57,6 +58,7 @@ function Dashboard() {
               sourceUrl="https://data.giss.nasa.gov/gistemp/"
             />
           )}
+          {viewId === 'globe' && <GlobeView />}
           {viewId === 'simulation' && <SimulationChart years={75} />}
           {viewId === 'stats' && <StatsPanel />}
           {viewId === 'anomalies' && <AnomalyChart threshold={2.0} />}

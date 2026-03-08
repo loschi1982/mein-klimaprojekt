@@ -16,6 +16,7 @@ export const NAV_ITEMS = [
     label: 'Temperaturen',
     children: [
       { id: 'temp_global', label: 'Global (NASA GISS)', unit: '°C', sourceId: 'nasa_giss_global' },
+      { id: 'globe', label: '3D-Globus (Zonen)', unit: '°C', sourceId: 'nasa_giss_zonal' },
     ],
   },
   {

@@ -58,6 +58,16 @@ SOURCES: dict[str, DataSource] = {
         source_url="https://data.giss.nasa.gov/gistemp/",
         parser="giss",
     ),
+    "nasa_giss_zonal": DataSource(
+        id="nasa_giss_zonal",
+        name="NASA GISS – Zonale Temperaturanomalien",
+        url="https://data.giss.nasa.gov/gistemp/tabledata_v4/ZonAnn.Ts+dSST.csv",
+        format="csv",
+        unit="°C",
+        description="Jährliche Temperaturanomalien nach Breitengradzone (1880–heute, Referenz 1951–1980)",
+        source_url="https://data.giss.nasa.gov/gistemp/",
+        parser="giss_zonal",
+    ),
 }
 
 

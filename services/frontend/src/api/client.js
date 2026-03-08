@@ -20,6 +20,14 @@ export const fetchTemperature = (from, to) =>
   api.get('/api/v1/analysis/temperature', { params: { from_date: from, to_date: to } })
     .then(r => r.data.data)
 
+export const fetchZonalTemperature = (year) =>
+  api.get('/api/v1/analysis/temperature/zonal', { params: year ? { year } : {} })
+    .then(r => r.data.data)
+
+export const fetchCo2Annual = (fromYear, toYear) =>
+  api.get('/api/v1/analysis/co2/annual', { params: { from_year: fromYear, to_year: toYear } })
+    .then(r => r.data.data)
+
 // Statistiken & Anomalien
 export const fetchCo2Stats = () =>
   api.get('/api/v1/analysis/co2/stats').then(r => r.data.data)
