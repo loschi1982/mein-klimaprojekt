@@ -9,6 +9,7 @@ import StatsPanel from './components/StatsPanel'
 import AnomalyChart from './components/AnomalyChart'
 import AdminPanel from './components/AdminPanel'
 import GlobeView from './components/GlobeView'
+import ChatWidget from './components/ChatWidget'
 import './App.css'
 
 // Views die ClimateSeriesChart verwenden (sourceId → backend source_id)
@@ -71,6 +72,8 @@ function Dashboard() {
           {viewId === 'admin' && <AdminPanel />}
         </section>
       </main>
+
+      <ChatWidget />
 
       <footer className="app-footer">
         <p>
