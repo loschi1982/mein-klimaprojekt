@@ -175,6 +175,76 @@ def _normalize_giss(raw_path: Path, source_id: str, output_path: Path | None = N
     return output_path
 
 
+# ── NASA GISS Zonal Parser ────────────────────────────────────────────────────
+
+# Zonen-Spalten in der ZonAnn.Ts+dSST.csv
+GISS_ZONES = ["Glob", "NHem", "SHem", "24N-90N", "24S-24N", "90S-24S",
+              "64N-90N", "44N-64N", "24N-44N", "EQU-24N", "24S-EQU",
+              "44S-24S", "64S-44S", "90S-64S"]
+
+
+def _parse_giss_zonal_csv(raw_path: Path) -> list[dict]:
+    """
+    Parst NASA GISS ZonAnn.Ts+dSST.csv.
+    Gibt pro Jahr ein Dict mit allen Zonenwerten zurück.
+    Werte in Hunderstel-Grad → Division durch 100.
+    """
+    rows = []
+    divide_by_100 = False
+    header_found = False
+    zone_indices: list[int] = []
+
+    with open(raw_path, newline="") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "Divide by 100" in stripped or "divide by 100" in stripped:
+                divide_by_100 = True
+                continue
+            if stripped.startswith("Year") and "Glob" in stripped:
+                header_found = True
+                parts = [p.strip() for p in stripped.split(",")]
+                zone_indices = [i for i, p in enumerate(parts) if p in GISS_ZONES]
+                zone_names = [parts[i] for i in zone_indices]
+                continue
+            if not header_found:
+                continue
+            parts = [p.strip() for p in stripped.split(",")]
+            try:
+                year = int(parts[0])
+            except ValueError:
+                continue
+            row = {"year": year}
+            for idx, zone in zip(zone_indices, zone_names):
+                raw_val = parts[idx] if idx < len(parts) else "***"
+                if raw_val in ("***", "", "nan"):
+                    row[zone] = None
+                else:
+                    try:
+                        v = float(raw_val)
+                        row[zone] = round(v / 100, 4) if divide_by_100 else round(v, 4)
+                    except ValueError:
+                        row[zone] = None
+            rows.append(row)
+    return rows
+
+
+def _normalize_giss_zonal(raw_path: Path, output_path: Path | None = None) -> Path:
+    """Normalisierer für NASA GISS Zonaldaten – speichert als JSON."""
+    import json
+    if output_path is None:
+        output_path = RAW_DATA_DIR / "nasa_giss_zonal.json"
+
+    rows = _parse_giss_zonal_csv(raw_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w") as f:
+        json.dump({"zones": GISS_ZONES, "data": rows}, f, separators=(",", ":"))
+
+    return output_path
+
+
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
 def run_pipeline(source_id: str) -> dict:
@@ -199,6 +269,8 @@ def run_pipeline(source_id: str) -> dict:
 
         if source.parser == "giss":
             normalized = _normalize_giss(raw, source_id)
+        elif source.parser == "giss_zonal":
+            normalized = _normalize_giss_zonal(raw)
         else:
             normalized = _normalize_esrl(raw, source_id)
 
