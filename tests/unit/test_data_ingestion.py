@@ -229,6 +229,44 @@ def test_validate_csv_file_not_found():
     assert any("nicht gefunden" in e for e in result.errors)
 
 
+# ── Pipeline ──────────────────────────────────────────────────────────────────
+
+def test_run_pipeline_unknown_source():
+    from modules.data_ingestion.ingester import run_pipeline
+    result = run_pipeline("nicht_vorhanden")
+    assert result["status"] == "error"
+    assert len(result["errors"]) > 0
+
+
+def test_run_pipeline_structure():
+    from modules.data_ingestion.ingester import run_pipeline
+    result = run_pipeline("nicht_vorhanden")
+    assert "source" in result
+    assert "status" in result
+    assert "errors" in result
+    assert "rows" in result
+
+
+def test_normalize_esrl_creates_file():
+    raw = make_raw_file(SAMPLE_RAW_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "output.csv"
+        from modules.data_ingestion.ingester import _normalize_esrl
+        result = _normalize_esrl(raw, "esrl_mauna_loa", out)
+        assert result.exists()
+        assert result.stat().st_size > 0
+
+
+def test_normalize_esrl_row_count():
+    raw = make_raw_file(SAMPLE_RAW_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "output.csv"
+        from modules.data_ingestion.ingester import _normalize_esrl
+        _normalize_esrl(raw, "esrl_mauna_loa", out)
+        rows = list(csv.DictReader(open(out)))
+    assert len(rows) == 2  # -99.99 und Kommentare herausgefiltert
+
+
 # ── Datums-Hilfsfunktion ──────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("date,expected", [
