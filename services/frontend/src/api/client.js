@@ -63,6 +63,10 @@ export const explainDataPoint = (dataPoint, question) =>
   api.post('/api/v1/explain', { data_point: dataPoint, question })
     .then(r => r.data.data.explanation)
 
+// KI-Chat
+export const sendChatMessage = (message, context = {}, history = []) =>
+  api.post('/api/v1/chat', { message, context, history }).then(r => r.data.data)
+
 // KI-Bericht generieren
 export const fetchAgentReport = (fromDate, toDate) =>
   api.get('/api/v1/analysis/co2/agent-report', { params: { from_date: fromDate, to_date: toDate } })

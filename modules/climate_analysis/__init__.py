@@ -9,6 +9,7 @@ from .analyzer import (
     load_series,
 )
 from .agents import DataAnalystAgent, TrendDetectorAgent
+from .chat import ClimateChat, ChatContext, ChatResponse
 
 __all__ = [
     "analyze_co2",
@@ -19,4 +20,7 @@ __all__ = [
     "load_series",
     "DataAnalystAgent",
     "TrendDetectorAgent",
+    "ClimateChat",
+    "ChatContext",
+    "ChatResponse",
 ]
