@@ -1312,3 +1312,28 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Sea Level Chart */
+.sealevel-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.sealevel-rise-badge {
+  font-size: 0.8rem;
+  color: #38bdf8;
+  background: #38bdf820;
+  border: 1px solid #38bdf840;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+}
+
+.sealevel-note {
+  font-size: 0.78rem;
+  color: #475569;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1e293b;
+  margin-top: 0.5rem;
+}

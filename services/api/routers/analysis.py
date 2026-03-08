@@ -266,3 +266,29 @@ def analysis_co2_annual(
         data={"unit": "ppm", "count": len(annual), "series": annual},
         meta=meta(),
     )
+
+
+@router.get("/sea-level", response_model=ApiResponse, summary="Globaler Meeresspiegel")
+def analysis_sea_level(
+    from_date: str | None = Query(None, description="Startdatum (ISO8601)"),
+    to_date: str | None = Query(None, description="Enddatum (ISO8601)"),
+):
+    """CSIRO rekonstruierter globaler Meeresspiegel (Church & White 2011, mm rel. zu 1990)."""
+    try:
+        series_raw = _load_normalized("csiro_sea_level", from_date, to_date)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
+
+    source = SOURCES["csiro_sea_level"]
+    return ApiResponse(
+        data={
+            "source_id": "csiro_sea_level",
+            "name": source.name,
+            "unit": source.unit,
+            "source_url": source.source_url,
+            "baseline": "1990",
+            "count": len(series_raw),
+            "series": [{"date": d, "value": v} for d, v in series_raw],
+        },
+        meta=meta(),
+    )

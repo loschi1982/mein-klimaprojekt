@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
       { id: 'co2_mauna_loa', label: 'CO₂ – Mauna Loa', unit: 'ppm', sourceId: 'esrl_mauna_loa' },
       { id: 'co2_global', label: 'CO₂ – Global', unit: 'ppm', sourceId: 'esrl_co2_global' },
       { id: 'ch4', label: 'Methan (CH₄)', unit: 'ppb', sourceId: 'esrl_ch4' },
+      { id: 'sea_level', label: 'Meeresspiegel', unit: 'mm', sourceId: 'csiro_sea_level' },
     ],
   },
   {
@@ -16,6 +17,7 @@ export const NAV_ITEMS = [
     label: 'Temperaturen',
     children: [
       { id: 'temp_global', label: 'Global (NASA GISS)', unit: '°C', sourceId: 'nasa_giss_global' },
+      { id: 'temp_berkeley', label: 'Global (Berkeley Earth)', unit: '°C', sourceId: 'berkeley_earth_global' },
       { id: 'globe', label: '3D-Globus (Zonen)', unit: '°C', sourceId: 'nasa_giss_zonal' },
     ],
   },
