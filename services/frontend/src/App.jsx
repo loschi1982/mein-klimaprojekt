@@ -3,6 +3,7 @@ import Co2Chart from './components/Co2Chart'
 import SimulationChart from './components/SimulationChart'
 import StatsPanel from './components/StatsPanel'
 import AnomalyChart from './components/AnomalyChart'
+import AdminPanel from './components/AdminPanel'
 import './App.css'
 
 const TABS = [
@@ -10,6 +11,7 @@ const TABS = [
   { id: 'simulation', label: 'Szenarien' },
   { id: 'stats', label: 'Statistiken' },
   { id: 'anomalies', label: 'Anomalien' },
+  { id: 'admin', label: '⚙ Admin' },
 ]
 
 export default function App() {
@@ -26,7 +28,7 @@ export default function App() {
         {TABS.map(tab => (
           <button
             key={tab.id}
-            className={`tab-btn${activeTab === tab.id ? ' tab-btn--active' : ''}`}
+            className={`tab-btn${activeTab === tab.id ? ' tab-btn--active' : ''}${tab.id === 'admin' ? ' tab-btn--admin' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
@@ -40,6 +42,7 @@ export default function App() {
           {activeTab === 'simulation' && <SimulationChart years={75} />}
           {activeTab === 'stats' && <StatsPanel />}
           {activeTab === 'anomalies' && <AnomalyChart threshold={2.0} />}
+          {activeTab === 'admin' && <AdminPanel />}
         </section>
       </main>
 

@@ -25,6 +25,15 @@ export const runSimulation = (scenario, years = 50, parameters = {}) =>
 export const compareScenarios = (years = 50) =>
   api.post(`/api/v1/simulate/compare?years=${years}`).then(r => r.data.data)
 
+export const fetchSources = () =>
+  api.get('/api/v1/sources').then(r => r.data.data)
+
+export const ingestSource = (sourceId) =>
+  api.post('/api/v1/ingest', { source: sourceId }).then(r => r.data.data)
+
+export const fetchDatasets = () =>
+  api.get('/api/v1/datasets').then(r => r.data.data)
+
 export const fetchChartMeta = (chartId) =>
   api.get(`/api/v1/charts/${chartId}`).then(r => r.data.data)
 

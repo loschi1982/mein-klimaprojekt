@@ -48,7 +48,7 @@ export default function Co2Chart() {
       <p>Fehler: {error}</p>
       <p style={{ fontSize: 13, color: '#94a3b8' }}>
         Stelle sicher, dass das Backend läuft und CO₂-Daten importiert wurden:<br />
-        <code>POST http://localhost:8000/api/v1/ingest</code> mit <code>{`{"source":"esrl_mauna_loa"}`}</code>
+        <code>POST http://localhost:8001/api/v1/ingest</code> mit <code>{`{"source":"esrl_mauna_loa"}`}</code>
       </p>
     </div>
   )
