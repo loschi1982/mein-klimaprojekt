@@ -3,6 +3,7 @@ Router: Climate Analysis
 Team-Branch: team/climate-analysis / team/api
 """
 from datetime import datetime, timezone
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from dataclasses import asdict
 
@@ -15,12 +16,31 @@ from modules.climate_analysis.analyzer import (
     detect_anomalies,
 )
 from modules.climate_analysis.agents import DataAnalystAgent, TrendDetectorAgent
+from modules.data_ingestion.sources import SOURCES
 
 router = APIRouter(prefix="/api/v1/analysis", tags=["Climate Analysis"])
+
+RAW_DIR = Path(__file__).parent.parent.parent.parent / "data" / "raw"
 
 
 def meta() -> Meta:
     return Meta(timestamp=datetime.now(timezone.utc).isoformat())
+
+
+def _load_normalized(source_id: str, from_date: str | None, to_date: str | None):
+    """Lädt eine normalisierte CSV-Datei und filtert nach Zeitraum."""
+    csv_file = RAW_DIR / f"{source_id}.csv"
+    if not csv_file.exists():
+        raise FileNotFoundError(
+            f"Datensatz '{source_id}' nicht gefunden. "
+            f"Bitte zuerst importieren: POST /api/v1/ingest mit source='{source_id}'"
+        )
+    series = load_series(csv_file)
+    if from_date:
+        series = [(d, v) for d, v in series if d >= from_date]
+    if to_date:
+        series = [(d, v) for d, v in series if d <= to_date]
+    return series
 
 
 @router.get("/co2", response_model=ApiResponse, summary="CO₂-Messdaten")
@@ -28,21 +48,13 @@ def analysis_co2(
     from_date: str | None = Query(None, description="Startdatum (ISO8601)"),
     to_date: str | None = Query(None, description="Enddatum (ISO8601)"),
 ):
-    """Gibt normalisierte CO₂-Messdaten zurück."""
+    """Gibt normalisierte CO₂-Messdaten zurück (Mauna Loa)."""
     try:
-        result = analyze_co2(from_date=from_date, to_date=to_date)
+        series_raw = _load_normalized("esrl_mauna_loa", from_date, to_date)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
     except ValueError as e:
         raise HTTPException(status_code=400, detail={"code": "INVALID_PARAMS", "message": str(e)})
-
-    from pathlib import Path
-    co2_file = Path(__file__).parent.parent.parent.parent / "data" / "raw" / "co2_mauna_loa.csv"
-    series_raw = load_series(co2_file)
-    if from_date:
-        series_raw = [(d, v) for d, v in series_raw if d >= from_date]
-    if to_date:
-        series_raw = [(d, v) for d, v in series_raw if d <= to_date]
 
     return ApiResponse(
         data=Co2Series(series=[DataPoint(date=d, value=v) for d, v in series_raw]),
@@ -50,10 +62,44 @@ def analysis_co2(
     )
 
 
-@router.get("/co2/stats", response_model=ApiResponse, summary="CO₂-Statistik")
-def analysis_co2_stats(
+@router.get("/series/{source_id}", response_model=ApiResponse, summary="Generische Zeitreihe")
+def analysis_series(
+    source_id: str,
     from_date: str | None = Query(None, description="Startdatum (ISO8601)"),
     to_date: str | None = Query(None, description="Enddatum (ISO8601)"),
+):
+    """
+    Gibt normalisierte Messdaten für eine beliebige Datenquelle zurück.
+    source_id: esrl_mauna_loa | esrl_co2_global | esrl_ch4 | nasa_giss_global
+    """
+    if source_id not in SOURCES:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "INVALID_SOURCE", "message": f"Unbekannte Quelle: {source_id}"},
+        )
+    try:
+        series_raw = _load_normalized(source_id, from_date, to_date)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
+
+    source = SOURCES[source_id]
+    return ApiResponse(
+        data={
+            "source_id": source_id,
+            "name": source.name,
+            "unit": source.unit,
+            "source_url": source.source_url,
+            "count": len(series_raw),
+            "series": [{"date": d, "value": v} for d, v in series_raw],
+        },
+        meta=meta(),
+    )
+
+
+@router.get("/co2/stats", response_model=ApiResponse, summary="CO₂-Statistik")
+def analysis_co2_stats(
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
 ):
     """Deskriptive Statistik: Mittelwert, Median, Std, Min, Max, Trend."""
     try:
@@ -77,7 +123,7 @@ def analysis_co2_stats(
 def analysis_co2_anomalies(
     from_date: str | None = Query(None),
     to_date: str | None = Query(None),
-    z_threshold: float = Query(2.5, description="Z-Score-Schwellenwert"),
+    z_threshold: float = Query(2.5),
 ):
     """Z-Score-basierte Anomalie-Detektion."""
     try:
@@ -85,8 +131,7 @@ def analysis_co2_anomalies(
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
 
-    from pathlib import Path
-    co2_file = Path(__file__).parent.parent.parent.parent / "data" / "raw" / "co2_mauna_loa.csv"
+    co2_file = RAW_DIR / "esrl_mauna_loa.csv"
     series = load_series(co2_file)
     anomalies = detect_anomalies(series, z_threshold=z_threshold)
 
@@ -104,12 +149,9 @@ def analysis_co2_anomalies(
 def analysis_co2_agent_report(
     from_date: str | None = Query(None),
     to_date: str | None = Query(None),
-    use_llm: bool = Query(False, description="Claude API verwenden (ANTHROPIC_API_KEY erforderlich)"),
+    use_llm: bool = Query(False),
 ):
-    """
-    DataAnalystAgent + TrendDetectorAgent-Bericht.
-    Gibt strukturierte Befunde und Empfehlungen zurück.
-    """
+    """DataAnalystAgent + TrendDetectorAgent-Bericht."""
     try:
         full_result = analyze_co2(from_date=from_date, to_date=to_date)
         recent_result = analyze_co2(from_date="2015-01-01", to_date=to_date)
@@ -118,7 +160,6 @@ def analysis_co2_agent_report(
 
     analyst = DataAnalystAgent(use_llm=use_llm)
     trend_agent = TrendDetectorAgent(use_llm=use_llm)
-
     analyst_report = analyst.run(full_result)
     trend_report = trend_agent.run(full_result, recent_result)
 
@@ -139,13 +180,27 @@ def analysis_co2_agent_report(
     )
 
 
-@router.get("/temperature", response_model=ApiResponse, summary="Temperaturdaten")
-def analysis_temperature():
-    """Temperaturdaten – folgt in Phase 2 (team/climate-analysis)."""
-    raise HTTPException(
-        status_code=404,
-        detail={
-            "code": "DATA_NOT_FOUND",
-            "message": "Temperaturdaten noch nicht verfügbar.",
+@router.get("/temperature", response_model=ApiResponse, summary="Globale Temperaturanomalie")
+def analysis_temperature(
+    from_date: str | None = Query(None, description="Startdatum (ISO8601)"),
+    to_date: str | None = Query(None, description="Enddatum (ISO8601)"),
+):
+    """NASA GISS globale Temperaturanomalie (1880–heute, Referenz 1951–1980)."""
+    try:
+        series_raw = _load_normalized("nasa_giss_global", from_date, to_date)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
+
+    source = SOURCES["nasa_giss_global"]
+    return ApiResponse(
+        data={
+            "source_id": "nasa_giss_global",
+            "name": source.name,
+            "unit": source.unit,
+            "source_url": source.source_url,
+            "baseline": "1951–1980",
+            "count": len(series_raw),
+            "series": [{"date": d, "value": v} for d, v in series_raw],
         },
+        meta=meta(),
     )

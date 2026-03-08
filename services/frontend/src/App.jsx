@@ -1,51 +1,87 @@
-import { useState } from 'react'
-import Co2Chart from './components/Co2Chart'
+import { AppProvider, useAppContext } from './context/AppContext'
+import NavBar from './components/NavBar'
+import TimeRangeSlider from './components/TimeRangeSlider'
+import ClimateSeriesChart from './components/ClimateSeriesChart'
+import TemperatureChart from './components/TemperatureChart'
 import SimulationChart from './components/SimulationChart'
 import StatsPanel from './components/StatsPanel'
 import AnomalyChart from './components/AnomalyChart'
+import AdminPanel from './components/AdminPanel'
 import './App.css'
 
-const TABS = [
-  { id: 'co2', label: 'CO₂-Verlauf' },
-  { id: 'simulation', label: 'Szenarien' },
-  { id: 'stats', label: 'Statistiken' },
-  { id: 'anomalies', label: 'Anomalien' },
-]
+const SOURCE_MAP = {
+  co2_mauna_loa: 'esrl_mauna_loa',
+  co2_global: 'esrl_co2_global',
+  ch4: 'esrl_ch4',
+}
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('co2')
+function Dashboard() {
+  const { currentView, timeRange, setTimeRange } = useAppContext()
+  const viewId = currentView.id
+  const [fromYear, toYear] = timeRange
+
+  const showSlider = !['admin', 'simulation'].includes(viewId)
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Klimadaten-Dashboard</h1>
-        <p>KI-gestützte Analyse und Visualisierung von Klimadaten</p>
+        <div className="app-header-content">
+          <div>
+            <h1>Klimadaten-Dashboard</h1>
+            <p>KI-gestützte Analyse und Visualisierung von Klimadaten</p>
+          </div>
+        </div>
       </header>
 
-      <nav className="tab-nav">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={`tab-btn${activeTab === tab.id ? ' tab-btn--active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <NavBar />
+
+      {showSlider && (
+        <div className="slider-bar">
+          <TimeRangeSlider value={timeRange} onChange={setTimeRange} />
+        </div>
+      )}
 
       <main className="app-main">
         <section className="section">
-          {activeTab === 'co2' && <Co2Chart />}
-          {activeTab === 'simulation' && <SimulationChart years={75} />}
-          {activeTab === 'stats' && <StatsPanel />}
-          {activeTab === 'anomalies' && <AnomalyChart threshold={2.0} />}
+          {SOURCE_MAP[viewId] && (
+            <ClimateSeriesChart
+              sourceId={SOURCE_MAP[viewId]}
+              fromYear={fromYear}
+              toYear={toYear}
+            />
+          )}
+          {viewId === 'temp_global' && (
+            <TemperatureChart
+              fromYear={fromYear}
+              toYear={toYear}
+              sourceUrl="https://data.giss.nasa.gov/gistemp/"
+            />
+          )}
+          {viewId === 'simulation' && <SimulationChart years={75} />}
+          {viewId === 'stats' && <StatsPanel />}
+          {viewId === 'anomalies' && <AnomalyChart threshold={2.0} />}
+          {viewId === 'admin' && <AdminPanel />}
         </section>
       </main>
 
       <footer className="app-footer">
-        <p>Datenquellen: NOAA ESRL · Mauna Loa Observatory · IPCC RCP-Szenarien</p>
+        <p>
+          Datenquellen:{' '}
+          <a href="https://gml.noaa.gov/ccgg/trends/" target="_blank" rel="noreferrer" className="source-link">NOAA GML</a>
+          {' · '}
+          <a href="https://data.giss.nasa.gov/gistemp/" target="_blank" rel="noreferrer" className="source-link">NASA GISS</a>
+          {' · '}
+          <a href="https://www.ipcc.ch/" target="_blank" rel="noreferrer" className="source-link">IPCC</a>
+        </p>
       </footer>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <Dashboard />
+    </AppProvider>
   )
 }
