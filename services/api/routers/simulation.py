@@ -1,74 +1,126 @@
 """
 Router: Simulation
-Team-Branch: team/api  (Grundgerüst – Logik folgt von team/simulation)
+Team-Branch: team/simulation
 """
+import sys
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
 from models.schemas import ApiResponse, Meta, ScenarioInfo, SimulateRequest
 
+# Projektroot in sys.path
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from modules.simulation import (
+    SimulationEngine,
+    SimulationParameters,
+    ScenarioType,
+    SCENARIO_DEFAULTS,
+    compare_scenarios,
+)
+
 router = APIRouter(prefix="/api/v1", tags=["Simulation"])
 
-SCENARIOS = {
-    "rcp26": ScenarioInfo(
-        id="rcp26",
-        name="RCP 2.6 – Starke Reduktion",
-        description="Emissionen werden stark reduziert. CO₂-Konzentration stabilisiert sich bei ~450 ppm.",
-        co2_growth_rate=0.5,
-    ),
-    "rcp45": ScenarioInfo(
-        id="rcp45",
-        name="RCP 4.5 – Moderate Reduktion",
-        description="Moderate Maßnahmen. CO₂-Konzentration stabilisiert sich bei ~550 ppm.",
-        co2_growth_rate=1.5,
-    ),
-    "rcp85": ScenarioInfo(
-        id="rcp85",
-        name="RCP 8.5 – Business as Usual",
-        description="Keine Maßnahmen. CO₂-Konzentration steigt auf über 900 ppm.",
-        co2_growth_rate=3.5,
-    ),
-}
+_engine = SimulationEngine()
 
 
 def meta() -> Meta:
     return Meta(timestamp=datetime.now(timezone.utc).isoformat())
 
 
+def _scenario_info(scenario_id: str) -> ScenarioInfo:
+    try:
+        stype = ScenarioType(scenario_id)
+    except ValueError:
+        return None
+    defaults = SCENARIO_DEFAULTS[stype]
+    return ScenarioInfo(
+        id=scenario_id,
+        name=defaults["name"],
+        description=defaults["description"],
+        co2_growth_rate=defaults["co2_growth_rate"],
+    )
+
+
 @router.get("/scenarios", response_model=ApiResponse, summary="Szenarien auflisten")
 def list_scenarios():
     """Gibt alle verfügbaren Klimaszenarien zurück."""
-    return ApiResponse(data=list(SCENARIOS.values()), meta=meta())
+    scenarios = [
+        _scenario_info(s.value)
+        for s in ScenarioType
+        if s != ScenarioType.CUSTOM
+    ]
+    return ApiResponse(data=scenarios, meta=meta())
 
 
 @router.post("/simulate", response_model=ApiResponse, summary="Simulation starten")
 def simulate(request: SimulateRequest):
     """
-    Führt eine einfache CO₂-Projektion durch.
-    Komplexe Simulationslogik wird von team/simulation implementiert.
+    Führt eine Klimasimulation mit dem SimulationEngine durch.
+    Unterstützt alle RCP-Szenarien und CUSTOM.
     """
-    if request.scenario not in SCENARIOS:
+    try:
+        scenario_type = ScenarioType(request.scenario)
+    except ValueError:
         raise HTTPException(
             status_code=400,
             detail={"code": "INVALID_PARAMS", "message": f"Unbekanntes Szenario: {request.scenario}"},
         )
 
-    scenario = SCENARIOS[request.scenario]
-    base_co2 = 425.0  # ppm (aktuell ca. 2026)
-    growth = request.parameters.get("co2_growth_rate", scenario.co2_growth_rate)
+    co2_growth_rate = request.parameters.get("co2_growth_rate") if request.parameters else None
+    co2_start = request.parameters.get("co2_start_ppm", 428.0) if request.parameters else 428.0
+    start_year = request.parameters.get("start_year", 2026) if request.parameters else 2026
 
-    projection = [
-        {"year": 2026 + i, "co2_ppm": round(base_co2 + growth * i, 2)}
-        for i in range(request.years + 1)
+    params = SimulationParameters(
+        scenario=scenario_type,
+        start_year=int(start_year),
+        years=request.years,
+        co2_start_ppm=float(co2_start),
+        co2_growth_rate=float(co2_growth_rate) if co2_growth_rate is not None else None,
+    )
+
+    result = _engine.run(params)
+
+    projection_data = [
+        {
+            "year": dp.year,
+            "co2_ppm": dp.co2_ppm,
+            "temperature_anomaly_c": dp.temperature_anomaly_c,
+            "radiative_forcing_wm2": dp.radiative_forcing_wm2,
+        }
+        for dp in result.projection
     ]
 
     return ApiResponse(
         data={
-            "scenario": scenario.id,
-            "scenario_name": scenario.name,
+            "scenario": result.scenario,
+            "scenario_name": result.scenario_name,
             "years": request.years,
-            "projection": projection,
+            "projection": projection_data,
+            "summary": result.summary,
         },
         meta=meta(),
     )
+
+
+@router.post("/simulate/compare", response_model=ApiResponse, summary="Szenarien vergleichen")
+def simulate_compare(years: int = 50, co2_start: float = 428.0):
+    """Vergleicht alle Standard-RCP-Szenarien."""
+    scenarios = [ScenarioType.RCP26, ScenarioType.RCP45, ScenarioType.RCP60, ScenarioType.RCP85]
+    results = compare_scenarios(scenarios, years=years, co2_start=co2_start)
+
+    comparison = {
+        scenario_id: {
+            "scenario_name": res.scenario_name,
+            "summary": res.summary,
+            "final_co2_ppm": res.projection[-1].co2_ppm,
+            "final_temp_anomaly_c": res.projection[-1].temperature_anomaly_c,
+        }
+        for scenario_id, res in results.items()
+    }
+
+    return ApiResponse(data=comparison, meta=meta())
