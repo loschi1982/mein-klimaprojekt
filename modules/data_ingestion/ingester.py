@@ -14,6 +14,9 @@ from .validator import validate_csv, ValidationResult
 
 RAW_DATA_DIR = Path(__file__).parent.parent.parent / "data" / "raw"
 
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
 
 # ── Download ──────────────────────────────────────────────────────────────────
 
@@ -32,7 +35,7 @@ def download_co2_mauna_loa(output_path: Path | None = None) -> Path:
     return download_source("esrl_mauna_loa", output_path)
 
 
-# ── Normalisierung ────────────────────────────────────────────────────────────
+# ── ESRL Parser ───────────────────────────────────────────────────────────────
 
 def _parse_esrl_csv(raw_path: Path, source_id: str) -> list[dict]:
     """
@@ -68,11 +71,6 @@ def _parse_esrl_csv(raw_path: Path, source_id: str) -> list[dict]:
     return rows
 
 
-def normalize_co2_mauna_loa(raw_path: Path, output_path: Path | None = None) -> Path:
-    """Normalisiert die ESRL Mauna Loa CSV auf das Standard-Schema."""
-    return _normalize_esrl(raw_path, "esrl_mauna_loa", output_path)
-
-
 def _normalize_esrl(raw_path: Path, source_id: str, output_path: Path | None = None) -> Path:
     """Generischer Normalisierer für ESRL-Quellen."""
     if output_path is None:
@@ -91,13 +89,98 @@ def _normalize_esrl(raw_path: Path, source_id: str, output_path: Path | None = N
     return output_path
 
 
+def normalize_co2_mauna_loa(raw_path: Path, output_path: Path | None = None) -> Path:
+    """Normalisiert die ESRL Mauna Loa CSV auf das Standard-Schema."""
+    return _normalize_esrl(raw_path, "esrl_mauna_loa", output_path)
+
+
+# ── NASA GISS Parser ──────────────────────────────────────────────────────────
+
+def _parse_giss_csv(raw_path: Path, source_id: str) -> list[dict]:
+    """
+    Parst NASA GISS Temperatur-CSV.
+    Format: Jahr-Zeilen mit monatlichen Anomalie-Werten (Hunderstel-Grad).
+    Fehlende Werte: '***'
+    """
+    rows = []
+    ingested_at = datetime.now(timezone.utc).isoformat()
+    source = get_source(source_id)
+    divide_by_100 = False
+    header_found = False
+
+    with open(raw_path, newline="") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Prüfe ob Werte durch 100 geteilt werden müssen
+            if "Divide by 100" in stripped or "divide by 100" in stripped:
+                divide_by_100 = True
+                continue
+
+            # Header-Zeile mit Monatsnamen finden
+            if stripped.startswith("Year") and "Jan" in stripped:
+                header_found = True
+                continue
+
+            if not header_found:
+                continue
+
+            parts = [p.strip() for p in stripped.split(",")]
+            if len(parts) < 13:
+                continue
+
+            try:
+                year = int(parts[0])
+            except ValueError:
+                continue
+
+            for month_idx, month_str in enumerate(MONTHS, start=1):
+                raw_val = parts[month_idx] if month_idx < len(parts) else "***"
+                if raw_val in ("***", "", "nan"):
+                    continue
+                try:
+                    value = float(raw_val)
+                    if divide_by_100:
+                        value = round(value / 100, 4)
+                    rows.append({
+                        "date": f"{year:04d}-{month_idx:02d}-01",
+                        "value": value,
+                        "unit": source.unit,
+                        "source": source_id,
+                        "ingested_at": ingested_at,
+                    })
+                except ValueError:
+                    continue
+
+    return rows
+
+
+def _normalize_giss(raw_path: Path, source_id: str, output_path: Path | None = None) -> Path:
+    """Normalisierer für NASA GISS-Quellen."""
+    if output_path is None:
+        output_path = RAW_DATA_DIR / f"{source_id}.csv"
+
+    rows = _parse_giss_csv(raw_path, source_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=["date", "value", "unit", "source", "ingested_at"]
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output_path
+
+
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
 def run_pipeline(source_id: str) -> dict:
     """
     Führt die vollständige Ingestion-Pipeline aus:
     Download → Normalisierung → Validierung
-    Gibt ein Status-Dictionary zurück.
     """
     result = {
         "source": source_id,
@@ -110,10 +193,15 @@ def run_pipeline(source_id: str) -> dict:
     }
 
     try:
+        source = get_source(source_id)
         raw = download_source(source_id)
         result["raw_file"] = raw.name
 
-        normalized = _normalize_esrl(raw, source_id)
+        if source.parser == "giss":
+            normalized = _normalize_giss(raw, source_id)
+        else:
+            normalized = _normalize_esrl(raw, source_id)
+
         result["normalized_file"] = normalized.name
 
         validation: ValidationResult = validate_csv(normalized)
@@ -147,7 +235,7 @@ def list_datasets() -> list[dict]:
     datasets = []
     for file in sorted(RAW_DATA_DIR.glob("*.csv")):
         if file.stem.endswith("_raw"):
-            continue  # Rohdateien ausblenden
+            continue
         row_count = max(sum(1 for _ in open(file)) - 1, 0)
         datasets.append({
             "id": file.stem,
@@ -169,6 +257,7 @@ def list_available_sources() -> list[dict]:
             "format": s.format,
             "unit": s.unit,
             "description": s.description,
+            "source_url": s.source_url,
         }
         for s in SOURCES.values()
     ]
