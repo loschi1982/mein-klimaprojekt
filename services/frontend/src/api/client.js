@@ -63,4 +63,25 @@ export const explainDataPoint = (dataPoint, question) =>
   api.post('/api/v1/explain', { data_point: dataPoint, question })
     .then(r => r.data.data.explanation)
 
+// KI-Bericht generieren
+export const fetchAgentReport = (fromDate, toDate) =>
+  api.get('/api/v1/analysis/co2/agent-report', { params: { from_date: fromDate, to_date: toDate } })
+    .then(r => r.data.data)
+
+// Admin: Berichte CRUD
+export const fetchReports = () =>
+  api.get('/api/v1/admin/reports').then(r => r.data.data)
+
+export const saveReport = (title, content, sourceId = 'esrl_mauna_loa', tags = []) =>
+  api.post('/api/v1/admin/reports', { title, content, source_id: sourceId, tags }).then(r => r.data.data)
+
+export const getReport = (reportId) =>
+  api.get(`/api/v1/admin/reports/${reportId}`).then(r => r.data.data)
+
+export const updateReport = (reportId, title, content, sourceId, tags) =>
+  api.put(`/api/v1/admin/reports/${reportId}`, { title, content, source_id: sourceId, tags }).then(r => r.data.data)
+
+export const deleteReport = (reportId) =>
+  api.delete(`/api/v1/admin/reports/${reportId}`).then(r => r.data.data)
+
 export default api
