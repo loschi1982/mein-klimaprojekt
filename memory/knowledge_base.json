@@ -1,0 +1,64 @@
+{
+  "entries": {
+    "co2_greenhouse_effect": {
+      "id": "co2_greenhouse_effect",
+      "topic": "co2_greenhouse_effect",
+      "title": "CO₂ als Treibhausgas",
+      "content": "Kohlendioxid (CO₂) ist das wichtigste vom Menschen verursachte Treibhausgas. Es absorbiert Infrarotstrahlung und gibt sie in alle Richtungen ab, wodurch die Erdoberfläche erwärmt wird. Seit der Industrialisierung ist die CO₂-Konzentration von ca. 280 ppm auf über 420 ppm gestiegen.",
+      "facts": [
+        "CO₂ hat eine atmosphärische Verweildauer von 300–1000 Jahren",
+        "Verantwortlich für ca. 66% des zusätzlichen Treibhauseffekts",
+        "Vorindustrieller Wert: ~280 ppm (Eiskerndaten)",
+        "Aktueller Wert (2026): ~428 ppm"
+      ],
+      "sources": ["IPCC AR6", "NOAA ESRL", "NASA GISS"],
+      "tags": ["co2", "treibhausgas", "klimawandel", "atmosphäre"],
+      "updated_at": "2026-03-08T00:00:00Z"
+    },
+    "mauna_loa_observatory": {
+      "id": "mauna_loa_observatory",
+      "topic": "mauna_loa_observatory",
+      "title": "Mauna Loa Observatory – Die längste CO₂-Messreihe",
+      "content": "Das Mauna Loa Observatory auf Hawaii misst seit 1958 kontinuierlich die atmosphärische CO₂-Konzentration. Die Messreihe wurde von Charles David Keeling begründet und ist heute als 'Keeling-Kurve' weltberühmt. Die Lage auf 3400 m Höhe, weit von Emissionsquellen entfernt, gewährleistet repräsentative Messungen.",
+      "facts": [
+        "Beginn der Messungen: März 1958",
+        "Erster gemessener Wert: 313 ppm (März 1958)",
+        "Betrieben von NOAA Global Monitoring Laboratory (ESRL)",
+        "Zeigt deutliche saisonale Schwankungen durch Pflanzenwachstum"
+      ],
+      "sources": ["NOAA ESRL/GML", "Scripps Institution of Oceanography"],
+      "tags": ["mauna_loa", "messstation", "keeling_kurve", "co2", "hawaii"],
+      "updated_at": "2026-03-08T00:00:00Z"
+    },
+    "rcp_scenarios": {
+      "id": "rcp_scenarios",
+      "topic": "rcp_scenarios",
+      "title": "RCP-Szenarien: Mögliche Klimazukünfte",
+      "content": "Representative Concentration Pathways (RCP) sind Szenarien für die zukünftige Entwicklung der Treibhausgaskonzentrationen. Sie beschreiben verschiedene mögliche Emissionspfade und deren Auswirkungen auf das Klima bis 2100.",
+      "facts": [
+        "RCP 2.6: Starke Reduktion – CO₂ stabilisiert sich bei ~450 ppm (1,5–2°C Erwärmung)",
+        "RCP 4.5: Moderate Maßnahmen – CO₂ bei ~550 ppm (~2,5°C Erwärmung)",
+        "RCP 8.5: Business as Usual – CO₂ über 900 ppm (>4°C Erwärmung)",
+        "Basis für IPCC-Klimamodelle und politische Entscheidungen"
+      ],
+      "sources": ["IPCC AR5", "IPCC AR6", "van Vuuren et al. 2011"],
+      "tags": ["rcp", "szenarien", "klimamodelle", "ipcc", "projektion"],
+      "updated_at": "2026-03-08T00:00:00Z"
+    },
+    "co2_350ppm_safety": {
+      "id": "co2_350ppm_safety",
+      "topic": "co2_350ppm_safety",
+      "title": "350 ppm – Die Sicherheitsgrenze für CO₂",
+      "content": "Der Klimawissenschaftler James Hansen et al. definierten 2008 einen CO₂-Wert von 350 ppm als die obere Sicherheitsgrenze für eine langfristig stabile Erde. Diese Grenze wurde bereits 1988 überschritten. Die Organisation 350.org leitet ihren Namen von dieser Zahl ab.",
+      "facts": [
+        "Grenzwert erstmals definiert von Hansen et al. (2008)",
+        "Grenze überschritten: ca. 1988",
+        "Aktueller Wert liegt ~80 ppm über der Sicherheitsgrenze",
+        "Rückkehr zu 350 ppm erfordert massive CO₂-Entnahme aus der Atmosphäre"
+      ],
+      "sources": ["Hansen et al. 2008, Open Atmos. Sci. J.", "350.org"],
+      "tags": ["350ppm", "sicherheitsgrenze", "hansen", "zielwert"],
+      "updated_at": "2026-03-08T00:00:00Z"
+    }
+  }
+}

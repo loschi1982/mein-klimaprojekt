@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import ingest, analysis, charts, simulation, explain
+from routers import ingest, analysis, charts, simulation, explain, knowledge
 
 app = FastAPI(
     title="Klimadaten API",
@@ -28,6 +28,7 @@ app = FastAPI(
         "- **Visualization** – Chart-Metadaten\n"
         "- **Simulation** – Klimaszenarien\n"
         "- **AI Explanation** – Claude-Integration\n"
+        "- **Knowledge Base** – Strukturiertes Klimawissen\n"
     ),
     version="1.0.0",
     docs_url="/docs",
@@ -47,6 +48,7 @@ app.include_router(analysis.router)
 app.include_router(charts.router)
 app.include_router(simulation.router)
 app.include_router(explain.router)
+app.include_router(knowledge.router)
 
 
 @app.get("/api/v1/health", tags=["System"])
