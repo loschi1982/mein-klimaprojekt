@@ -86,11 +86,31 @@ def test_simulate_invalid_scenario():
 
 # ── AI Explanation (ohne API-Key) ─────────────────────────────────────────────
 
-def test_explain_without_api_key(monkeypatch):
+def test_explain_without_api_key_uses_fallback(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     response = client.post("/api/v1/explain", json={
         "data_point": {"type": "co2", "value": 421.5, "date": "2024-03"},
         "question": "Warum ist dieser Wert so hoch?",
     })
-    assert response.status_code == 401
-    assert response.json()["detail"]["code"] == "AUTH_REQUIRED"
+    assert response.status_code == 200
+    assert len(response.json()["data"]["explanation"]) > 0
+
+
+def test_explain_article_ideas():
+    response = client.post("/api/v1/explain/article-ideas", json={
+        "analysis_summary": {"slope": 2.1, "max_value": 428.0, "anomaly_count": 3,
+                              "mean": 390.0, "min_date": "1958-03-01", "max_date": "2026-01-01"},
+        "count": 3,
+    })
+    assert response.status_code == 200
+    ideas = response.json()["data"]
+    assert len(ideas) == 3
+    assert all("title" in i and "key_points" in i for i in ideas)
+
+
+def test_explain_audiences():
+    response = client.get("/api/v1/explain/audiences")
+    assert response.status_code == 200
+    audiences = response.json()["data"]["audiences"]
+    assert "beginner" in audiences
+    assert "expert" in audiences

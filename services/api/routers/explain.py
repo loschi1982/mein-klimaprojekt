@@ -1,13 +1,14 @@
 """
-Router: AI Explanation (Claude API)
-Team-Branch: team/api  (Integration – Logik von team/ai-explanation)
+Router: AI Explanation
+Team-Branch: team/ai-explanation
 """
-import os
 from datetime import datetime, timezone
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from models.schemas import ApiResponse, ExplainRequest, ExplainResponse, Meta
+from modules.ai_explanation.explainer import ExplanationAgent
+from modules.ai_explanation.article_ideas import ArticleIdeaAgent
 
 router = APIRouter(prefix="/api/v1", tags=["AI Explanation"])
 
@@ -16,37 +17,63 @@ def meta() -> Meta:
     return Meta(timestamp=datetime.now(timezone.utc).isoformat())
 
 
-@router.post("/explain", response_model=ApiResponse, summary="Datenpunkt erklären (Claude)")
-def explain(request: ExplainRequest):
-    """Erklärt einen Klimadatenpunkt in verständlicher Sprache via Claude API."""
-    try:
-        import anthropic
-    except ImportError:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": "PROCESSING_ERROR", "message": "anthropic-Paket nicht installiert."},
-        )
+class ArticleIdeasRequest(BaseModel):
+    analysis_summary: dict
+    count: int = 5
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=401,
-            detail={"code": "AUTH_REQUIRED", "message": "ANTHROPIC_API_KEY nicht gesetzt."},
-        )
 
-    client = anthropic.Anthropic(api_key=api_key)
-    prompt = (
-        "Du bist ein Klimawissenschaftler, der Daten einfach und verständlich erklärt.\n"
-        f"Datenpunkt: {request.data_point}\n"
-        f"Frage: {request.question}\n"
-        "Erkläre in 2-3 Sätzen, verständlich für Anfänger ohne Fachkenntnisse."
-    )
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=512,
-        messages=[{"role": "user", "content": prompt}],
-    )
+@router.get("/explain/audiences", response_model=ApiResponse, summary="Verfügbare Zielgruppen")
+def list_audiences():
+    """Gibt die verfügbaren Zielgruppen für Erklärungen zurück."""
     return ApiResponse(
-        data=ExplainResponse(explanation=message.content[0].text),
+        data={"audiences": list(ExplanationAgent.AUDIENCES.keys())},
+        meta=meta(),
+    )
+
+
+@router.post("/explain", response_model=ApiResponse, summary="Datenpunkt erklären")
+def explain(
+    request: ExplainRequest,
+    audience: str = Query("beginner", description="Zielgruppe: beginner | expert"),
+):
+    """
+    Erklärt einen Klimadatenpunkt in verständlicher Sprache.
+    Nutzt Claude API wenn ANTHROPIC_API_KEY gesetzt, sonst regelbasiert.
+    """
+    agent = ExplanationAgent()
+    result = agent.explain(request.data_point, request.question, audience)
+    return ApiResponse(
+        data=ExplainResponse(
+            explanation=result.explanation,
+            confidence=result.confidence,
+            sources=result.sources,
+        ),
+        meta=meta(),
+    )
+
+
+@router.post("/explain/article-ideas", response_model=ApiResponse, summary="Artikelideen generieren")
+def article_ideas(request: ArticleIdeasRequest):
+    """
+    Generiert Artikelideen aus einem Analyse-Zusammenfassungs-Dict.
+    Erwartet: slope, mean, max_value, anomaly_count, min_date, max_date
+    """
+    if request.count < 1 or request.count > 10:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "INVALID_PARAMS", "message": "count muss zwischen 1 und 10 liegen"},
+        )
+    agent = ArticleIdeaAgent()
+    ideas = agent.generate(request.analysis_summary, request.count)
+    return ApiResponse(
+        data=[
+            {
+                "title": idea.title,
+                "hook": idea.hook,
+                "key_points": idea.key_points,
+                "target_audience": idea.target_audience,
+            }
+            for idea in ideas
+        ],
         meta=meta(),
     )
