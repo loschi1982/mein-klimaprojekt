@@ -14,6 +14,10 @@ from modules.data_ingestion.ingester import (
     _parse_giss_csv,
     _parse_giss_zonal_csv,
     _normalize_giss_zonal,
+    _parse_berkeley_earth,
+    _normalize_berkeley_earth,
+    _parse_sea_level,
+    _normalize_sea_level,
     GISS_ZONES,
 )
 from modules.data_ingestion.sources import get_source, SOURCES
@@ -435,3 +439,176 @@ def test_nasa_giss_zonal_source_in_sources():
 ])
 def test_valid_date(date, expected):
     assert _valid_date(date) == expected
+
+
+# ── Berkeley Earth Parser ──────────────────────────────────────────────────────
+
+SAMPLE_BERKELEY_EARTH = """\
+% Berkeley Earth Land+Ocean Monthly Average Temperature Anomaly
+%
+% Year, Month, Anomaly, Uncertainty
+% Year, Month are integers. Anomaly and Uncertainty are in degrees Celsius.
+%
+% Year Month Anomaly Uncertainty
+1850    1        0.003    0.289
+1850    2        0.062    0.270
+2023    12       1.352    0.050
+"""
+
+SAMPLE_BERKELEY_EARTH_WITH_NAN = """\
+% Test
+% Year Month Anomaly Uncertainty
+1990    1        0.250    0.100
+1990    2        NaN      0.100
+1990    3        0.300    0.100
+"""
+
+
+def test_parse_berkeley_earth_row_count():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    assert len(rows) == 3
+
+
+def test_parse_berkeley_earth_date_format():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    assert rows[0]["date"] == "1850-01-01"
+    assert rows[1]["date"] == "1850-02-01"
+    assert rows[2]["date"] == "2023-12-01"
+
+
+def test_parse_berkeley_earth_value():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    assert rows[0]["value"] == pytest.approx(0.003, abs=1e-4)
+    assert rows[2]["value"] == pytest.approx(1.352, abs=1e-4)
+
+
+def test_parse_berkeley_earth_unit():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    assert all(r["unit"] == "°C" for r in rows)
+
+
+def test_parse_berkeley_earth_source():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    assert all(r["source"] == "berkeley_earth_global" for r in rows)
+
+
+def test_parse_berkeley_earth_skips_nan():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH_WITH_NAN)
+    rows = _parse_berkeley_earth(raw, "berkeley_earth_global")
+    dates = [r["date"] for r in rows]
+    assert "1990-02-01" not in dates
+    assert "1990-01-01" in dates
+    assert "1990-03-01" in dates
+
+
+def test_normalize_berkeley_earth_creates_file():
+    raw = make_raw_file(SAMPLE_BERKELEY_EARTH)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "berkeley.csv"
+        result = _normalize_berkeley_earth(raw, "berkeley_earth_global", out)
+        assert result.exists()
+        rows = list(csv.DictReader(open(out)))
+    assert len(rows) == 3
+
+
+def test_berkeley_earth_source_in_sources():
+    source = get_source("berkeley_earth_global")
+    assert source.parser == "berkeley_earth"
+    assert source.unit == "°C"
+
+
+# ── CSIRO Sea Level Parser ─────────────────────────────────────────────────────
+
+SAMPLE_SEA_LEVEL_CSV = """\
+Time; GMSL (Reconstructed)
+1880.042; -170.869
+1880.125; -171.954
+1990.000; 0.000
+2015.958; 68.234
+"""
+
+SAMPLE_SEA_LEVEL_COMMA = """\
+# Global mean sea level
+# Time, GMSL
+1880.042,-170.869
+1990.000,0.000
+"""
+
+
+def test_parse_sea_level_row_count():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert len(rows) == 4
+
+
+def test_parse_sea_level_date_format():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert rows[0]["date"] == "1880-01-01"
+    assert rows[2]["date"] == "1990-01-01"
+
+
+def test_parse_sea_level_value():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert rows[0]["value"] == pytest.approx(-170.87, abs=0.1)
+    assert rows[2]["value"] == pytest.approx(0.0)
+    assert rows[3]["value"] == pytest.approx(68.23, abs=0.1)
+
+
+def test_parse_sea_level_unit():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert all(r["unit"] == "mm" for r in rows)
+
+
+def test_parse_sea_level_source():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert all(r["source"] == "csiro_sea_level" for r in rows)
+
+
+def test_parse_sea_level_comma_separator():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_COMMA)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    assert len(rows) == 2
+    assert rows[0]["value"] == pytest.approx(-170.87, abs=0.1)
+
+
+def test_parse_sea_level_skips_header():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    rows = _parse_sea_level(raw, "csiro_sea_level")
+    # Kein "Time" als year
+    for r in rows:
+        year = int(r["date"][:4])
+        assert year >= 1800
+
+
+def test_normalize_sea_level_creates_file():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "sea_level.csv"
+        result = _normalize_sea_level(raw, "csiro_sea_level", out)
+        assert result.exists()
+        rows = list(csv.DictReader(open(out)))
+    assert len(rows) == 4
+
+
+def test_normalize_sea_level_schema():
+    raw = make_raw_file(SAMPLE_SEA_LEVEL_CSV)
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "sea_level.csv"
+        _normalize_sea_level(raw, "csiro_sea_level", out)
+        rows = list(csv.DictReader(open(out)))
+    assert all(k in rows[0] for k in ["date", "value", "unit", "source", "ingested_at"])
+
+
+def test_csiro_sea_level_source_in_sources():
+    source = get_source("csiro_sea_level")
+    assert source.parser == "sea_level"
+    assert source.unit == "mm"

@@ -68,6 +68,26 @@ SOURCES: dict[str, DataSource] = {
         source_url="https://data.giss.nasa.gov/gistemp/",
         parser="giss_zonal",
     ),
+    "berkeley_earth_global": DataSource(
+        id="berkeley_earth_global",
+        name="Berkeley Earth – Globale Temperaturanomalie",
+        url="https://berkeley-earth-temperature.s3.us-west-1.amazonaws.com/Global/Land_and_Ocean_complete.txt",
+        format="csv",
+        unit="°C",
+        description="Monatliche globale Temperaturanomalie Land+Ozean (Berkeley Earth, Referenz 1951–1980)",
+        source_url="https://berkeleyearth.org/data/",
+        parser="berkeley_earth",
+    ),
+    "csiro_sea_level": DataSource(
+        id="csiro_sea_level",
+        name="CSIRO – Globaler Meeresspiegel",
+        url="https://www.cmar.csiro.au/sealevel/CSIRO_Recons_gmsl_mo_2015.csv",
+        format="csv",
+        unit="mm",
+        description="Rekonstruierter globaler Meeresspiegel 1880–2015 (Church & White 2011, Anomalie rel. zu 1990)",
+        source_url="https://www.cmar.csiro.au/sealevel/",
+        parser="sea_level",
+    ),
 }
 
 

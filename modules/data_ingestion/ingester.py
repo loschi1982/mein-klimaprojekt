@@ -245,6 +245,129 @@ def _normalize_giss_zonal(raw_path: Path, output_path: Path | None = None) -> Pa
     return output_path
 
 
+# ── Berkeley Earth Parser ────────────────────────────────────────────────────
+
+def _parse_berkeley_earth(raw_path: Path, source_id: str) -> list[dict]:
+    """
+    Parst Berkeley Earth Land+Ocean Complete.
+    Format: %-Kommentare, Leerzeichen-getrennt: Year Month Anomaly Uncertainty ...
+    Fehlende Werte: NaN
+    """
+    rows = []
+    ingested_at = datetime.now(timezone.utc).isoformat()
+    source = get_source(source_id)
+    header_passed = False
+
+    with open(raw_path, newline="", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("%"):
+                if "Year" in stripped and "Month" in stripped:
+                    header_passed = True
+                continue
+            if not header_passed:
+                continue
+            parts = stripped.split()
+            if len(parts) < 3:
+                continue
+            try:
+                year = int(parts[0])
+                month = int(parts[1])
+                value_str = parts[2]
+                if value_str.lower() == "nan":
+                    continue
+                value = float(value_str)
+                rows.append({
+                    "date": f"{year:04d}-{month:02d}-01",
+                    "value": round(value, 4),
+                    "unit": source.unit,
+                    "source": source_id,
+                    "ingested_at": ingested_at,
+                })
+            except (ValueError, IndexError):
+                continue
+    return rows
+
+
+def _normalize_berkeley_earth(raw_path: Path, source_id: str, output_path: Path | None = None) -> Path:
+    """Normalisierer für Berkeley Earth Temperatur-Daten."""
+    if output_path is None:
+        output_path = RAW_DATA_DIR / f"{source_id}.csv"
+
+    rows = _parse_berkeley_earth(raw_path, source_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=["date", "value", "unit", "source", "ingested_at"]
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output_path
+
+
+# ── CSIRO Sea Level Parser ────────────────────────────────────────────────────
+
+def _parse_sea_level(raw_path: Path, source_id: str) -> list[dict]:
+    """
+    Parst CSIRO Church & White globalen Meeresspiegel.
+    Format: Semikolon-getrennt, Dezimaljahr; GMSL (mm)
+    Kommentare: Zeilen die nicht mit Ziffer beginnen.
+    """
+    rows = []
+    ingested_at = datetime.now(timezone.utc).isoformat()
+    source = get_source(source_id)
+
+    with open(raw_path, newline="", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Kommentar- und Header-Zeilen überspringen
+            if not stripped[0].isdigit():
+                continue
+            # Trennzeichen: Semikolon oder Komma
+            sep = ";" if ";" in stripped else ","
+            parts = [p.strip() for p in stripped.split(sep)]
+            if len(parts) < 2:
+                continue
+            try:
+                decimal_year = float(parts[0])
+                value = float(parts[1])
+                # Dezimaljahr → Kalendermonat
+                year = int(decimal_year)
+                month = max(1, min(12, int((decimal_year - year) * 12) + 1))
+                rows.append({
+                    "date": f"{year:04d}-{month:02d}-01",
+                    "value": round(value, 2),
+                    "unit": source.unit,
+                    "source": source_id,
+                    "ingested_at": ingested_at,
+                })
+            except (ValueError, IndexError):
+                continue
+    return rows
+
+
+def _normalize_sea_level(raw_path: Path, source_id: str, output_path: Path | None = None) -> Path:
+    """Normalisierer für CSIRO Meeresspiegel-Daten."""
+    if output_path is None:
+        output_path = RAW_DATA_DIR / f"{source_id}.csv"
+
+    rows = _parse_sea_level(raw_path, source_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=["date", "value", "unit", "source", "ingested_at"]
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output_path
+
+
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
 def run_pipeline(source_id: str) -> dict:
@@ -271,6 +394,10 @@ def run_pipeline(source_id: str) -> dict:
             normalized = _normalize_giss(raw, source_id)
         elif source.parser == "giss_zonal":
             normalized = _normalize_giss_zonal(raw)
+        elif source.parser == "berkeley_earth":
+            normalized = _normalize_berkeley_earth(raw, source_id)
+        elif source.parser == "sea_level":
+            normalized = _normalize_sea_level(raw, source_id)
         else:
             normalized = _normalize_esrl(raw, source_id)
 
