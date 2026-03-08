@@ -1,0 +1,102 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Header */
+.app-header {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.4rem;
+}
+
+.app-header p {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Main */
+.app-main {
+  min-height: calc(100vh - 220px);
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+/* Chart */
+.chart-container {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 0.3rem;
+}
+
+.chart-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+.chart-loading {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.chart-error {
+  background: #1e293b;
+  border: 1px solid #ef444433;
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: #fca5a5;
+}
+
+.chart-error code {
+  background: #0f172a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #34d399;
+}
+
+/* Footer */
+.app-footer {
+  padding: 1.5rem 0;
+  border-top: 1px solid #1e293b;
+  text-align: center;
+  color: #475569;
+  font-size: 0.85rem;
+  margin-top: 2rem;
+}
