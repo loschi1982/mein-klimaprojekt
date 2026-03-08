@@ -81,7 +81,7 @@ SOURCES: dict[str, DataSource] = {
     "csiro_sea_level": DataSource(
         id="csiro_sea_level",
         name="CSIRO – Globaler Meeresspiegel",
-        url="https://www.cmar.csiro.au/sealevel/CSIRO_Recons_gmsl_mo_2015.csv",
+        url="https://raw.githubusercontent.com/datasets/sea-level-rise/main/archive/church_white_gmsl_2011_up/CSIRO_Recons_gmsl_mo_2015.csv",
         format="csv",
         unit="mm",
         description="Rekonstruierter globaler Meeresspiegel 1880–2015 (Church & White 2011, Anomalie rel. zu 1990)",
