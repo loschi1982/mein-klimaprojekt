@@ -11,6 +11,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from models.schemas import ApiResponse, Meta
+from modules.climate_analysis.report_scanner import ReportScanner, PRESET_TOPICS
+
+_scanner = ReportScanner()
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -30,6 +33,11 @@ def _load_report(report_id: str) -> dict:
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
+class ScanRequest(BaseModel):
+    topic: str
+    max_papers: int = 5
+
+
 class ReportSaveRequest(BaseModel):
     title: str
     content: str           # HTML aus WYSIWYG-Editor
@@ -38,6 +46,43 @@ class ReportSaveRequest(BaseModel):
 
 
 # ── Endpunkte ─────────────────────────────────────────────────────────────────
+
+@router.get("/scan-topics", response_model=ApiResponse, summary="Vordefinierte Suchthemen")
+def get_scan_topics():
+    """Gibt die vordefinierten Literatur-Suchthemen zurück."""
+    return ApiResponse(data={"topics": PRESET_TOPICS}, meta=_meta())
+
+
+@router.post("/scan-reports", response_model=ApiResponse, summary="Wissenschaftliche Literatur scannen")
+def scan_reports(req: ScanRequest):
+    """
+    Sucht via OpenAlex nach Fachartikeln und erstellt einen quellenbasierten KI-Bericht.
+    Verwendet ausschließlich Informationen aus den gefundenen Abstracts.
+    """
+    if not req.topic.strip():
+        raise HTTPException(status_code=400, detail={"code": "INVALID_PARAMS", "message": "Thema darf nicht leer sein"})
+    result = _scanner.scan(req.topic.strip(), max(1, min(req.max_papers, 10)))
+    return ApiResponse(
+        data={
+            "topic": result.topic,
+            "summary": result.summary,
+            "used_llm": result.used_llm,
+            "scanned_at": result.scanned_at,
+            "papers": [
+                {
+                    "title": p.title,
+                    "authors": p.authors,
+                    "year": p.year,
+                    "url": p.url,
+                    "doi": p.doi,
+                    "abstract_snippet": p.abstract[:400] + "…" if len(p.abstract) > 400 else p.abstract,
+                }
+                for p in result.papers
+            ],
+        },
+        meta=_meta(),
+    )
+
 
 @router.get("/reports", response_model=ApiResponse, summary="Alle Berichte auflisten")
 def list_reports():

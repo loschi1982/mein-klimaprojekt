@@ -88,4 +88,10 @@ export const updateReport = (reportId, title, content, sourceId, tags) =>
 export const deleteReport = (reportId) =>
   api.delete(`/api/v1/admin/reports/${reportId}`).then(r => r.data.data)
 
+export const fetchScanTopics = () =>
+  api.get('/api/v1/admin/scan-topics').then(r => r.data.data.topics)
+
+export const scanReports = (topic, maxPapers = 5) =>
+  api.post('/api/v1/admin/scan-reports', { topic, max_papers: maxPapers }).then(r => r.data.data)
+
 export default api
