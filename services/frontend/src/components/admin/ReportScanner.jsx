@@ -1,5 +1,74 @@
 import { useState, useEffect } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { fetchScanTopics, scanReports, saveReport } from '../../api/client'
+
+// ── Hilfsfunktionen ─────────────────────────────────────────────────────────
+
+function parseHighlights(summary) {
+  const match = summary.match(/## Auf einen Blick\n([\s\S]*?)(?=\n##|$)/)
+  if (!match) return []
+  return match[1]
+    .split('\n')
+    .filter(l => l.trim().startsWith('-'))
+    .map(line => {
+      const m = line.match(/^-\s*(.*?)\s*\*\*(.+?)\*\*\s*[–-]\s*(.+)$/)
+      if (!m) return null
+      return { prefix: m[1].trim(), value: m[2].trim(), label: m[3].trim() }
+    })
+    .filter(Boolean)
+}
+
+function stripHighlights(summary) {
+  return summary.replace(/## Auf einen Blick\n[\s\S]*?(?=\n## )/, '')
+}
+
+function buildYearData(papers) {
+  const counts = {}
+  papers.forEach(p => {
+    if (p.year) counts[p.year] = (counts[p.year] || 0) + 1
+  })
+  return Object.entries(counts)
+    .sort(([a], [b]) => a - b)
+    .map(([year, count]) => ({ year: String(year), count }))
+}
+
+// ── Teilkomponenten ──────────────────────────────────────────────────────────
+
+function HighlightCards({ highlights }) {
+  if (!highlights.length) return null
+  return (
+    <div className="scan-highlights">
+      {highlights.map((h, i) => (
+        <div key={i} className="scan-highlight-card">
+          <div className="scan-highlight-prefix">{h.prefix}</div>
+          <div className="scan-highlight-value">{h.value}</div>
+          <div className="scan-highlight-label">{h.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function YearChart({ papers }) {
+  const data = buildYearData(papers)
+  if (data.length < 2) return null
+  return (
+    <div className="scan-year-chart">
+      <div className="scan-year-chart-title">Publikationsjahre der verwendeten Studien</div>
+      <ResponsiveContainer width="100%" height={80}>
+        <BarChart data={data} margin={{ top: 4, right: 8, left: -28, bottom: 0 }}>
+          <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#64748b' }} />
+          <YAxis tick={{ fontSize: 10, fill: '#64748b' }} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{ background: '#0f172a', border: '1px solid #334155', fontSize: '0.75rem', color: '#e2e8f0' }}
+            cursor={{ fill: 'rgba(59,130,246,0.1)' }}
+          />
+          <Bar dataKey="count" name="Artikel" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
 function PaperCard({ paper, index }) {
   return (
@@ -34,7 +103,6 @@ function PaperCard({ paper, index }) {
 }
 
 function SummaryText({ text }) {
-  // Konvertiert einfaches Markdown zu HTML
   const html = text
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')
@@ -49,6 +117,8 @@ function SummaryText({ text }) {
     />
   )
 }
+
+// ── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export default function ReportScanner() {
   const [topics, setTopics] = useState([])
@@ -112,6 +182,9 @@ export default function ReportScanner() {
       setSaveStatus('error')
     }
   }
+
+  const highlights = result ? parseHighlights(result.summary) : []
+  const summaryWithoutHighlights = result ? stripHighlights(result.summary) : ''
 
   return (
     <div className="admin-section">
@@ -213,10 +286,16 @@ export default function ReportScanner() {
             Es wurden keine eigenen Informationen ergänzt.
           </div>
 
+          {/* Auf einen Blick – Stat-Karten */}
+          {highlights.length > 0 && <HighlightCards highlights={highlights} />}
+
           {/* Zusammenfassung */}
           <div className="scan-summary">
-            <SummaryText text={result.summary} />
+            <SummaryText text={summaryWithoutHighlights} />
           </div>
+
+          {/* Publikationsjahr-Chart */}
+          {result.papers.length >= 2 && <YearChart papers={result.papers} />}
 
           {/* Verwendete Artikel */}
           <div className="scan-papers">

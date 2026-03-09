@@ -221,34 +221,50 @@ def _llm_summary(papers: list[ScientificPaper], topic: str, api_key: str) -> str
         )
 
     system = (
-        "Du bist ein Wissenschaftsjournalist. Du schreibst ausschließlich auf Deutsch. "
+        "Du bist ein Wissenschaftsjournalist. Dein Stil: sachlich, locker und direkt – "
+        "wie ein spannender Artikel bei Spiegel Wissen oder Zeit Wissen. "
+        "Du erklärst komplexe Forschung so, dass sie jeder versteht, der keine Vorkenntnisse hat. "
+        "Kein Akademiker-Deutsch, keine langen Schachtelsätze, kein Passiv wo es vermeidbar ist. "
+        "Du schreibst ausschließlich auf Deutsch. "
         "Du verwendest NUR Informationen aus den dir bereitgestellten Abstracts – "
         "keine eigenen Kenntnisse, keine Ergänzungen, keine Vermutungen. "
-        "Jede Aussage muss mit [Artikel N] belegt sein."
+        "Jede inhaltliche Aussage muss mit [Artikel N] belegt sein."
     )
 
     user = (
         f"Thema: {topic}\n\n"
         f"Hier sind {len(papers)} wissenschaftliche Fachartikel:\n"
         f"{articles_block}\n\n"
-        "Schreibe einen verständlichen Bericht in einfacher Sprache (ca. 400–550 Wörter).\n\n"
+        "Schreibe einen gut lesbaren Bericht (ca. 400–550 Wörter) für neugierige Menschen ohne Fachkenntnisse.\n\n"
+        "AUFBAU (genau in dieser Reihenfolge):\n\n"
+        "1. ## Auf einen Blick\n"
+        "   Genau 3–4 Bullet-Points mit den wichtigsten Zahlenwerten oder Fakten direkt aus den Artikeln.\n"
+        "   Format pro Zeile (exakt einhalten):\n"
+        "   - {Emoji} **{Zahl oder Kurzwert}** – {kurze Erklärung, max. 8 Wörter}\n"
+        "   Beispiele:\n"
+        "   - 🌡️ **+4°C** – So viel wärmer ist die Arktis seit 1980\n"
+        "   - 📉 **13 %** – Rückgang der Meereisfläche pro Jahrzehnt\n\n"
+        "2. ## Was die Forschung zeigt\n"
+        "   Einleitung: Worum geht es, warum ist das wichtig? (2–3 lockere Sätze, direkt ansprechend)\n\n"
+        "3. ## Die wichtigsten Erkenntnisse\n"
+        "   Hauptaussagen der Artikel mit [Artikel N] belegt, in einfacher, lebendiger Sprache.\n\n"
+        "4. ## Fazit\n"
+        "   Was bedeutet das konkret für uns? (2–3 Sätze, gern mit einem klaren Statement)\n\n"
+        "5. **Quellen**\n"
+        "   1. Titel (Jahr) – Autoren – [DOI/Link](URL)\n\n"
         "STRENGE REGELN:\n"
         "1. Nur Informationen aus den obigen Abstracts – keine eigenen Ergänzungen.\n"
-        "2. Jede inhaltliche Aussage mit [Artikel N] im Text belegen.\n"
-        "3. Fachbegriffe sofort in Klammern erklären.\n"
-        "4. Schreibe klar und verständlich für ein breites Publikum.\n"
-        "5. Gliedere in: Einleitung → Haupterkenntnisse → Fazit → Quellenverzeichnis.\n\n"
-        "Quellenverzeichnis am Ende (Markdown-Format):\n"
-        "**Quellen**\n"
-        "1. Titel (Jahr) – Autoren – [DOI/Link](URL)\n"
-        "...\n\n"
-        "Beginne direkt mit dem Bericht ohne Präambel."
+        "2. Jede inhaltliche Aussage mit [Artikel N] belegen.\n"
+        "3. Fachbegriffe sofort in Klammern einfach erklären.\n"
+        "4. Zahlen und Fakten aus den Artikeln hervorheben.\n"
+        "5. Kein Akademiker-Deutsch – schreib für neugierige Menschen ohne Fachkenntnisse.\n\n"
+        "Beginne direkt mit '## Auf einen Blick'."
     )
 
     client = anthropic.Anthropic(api_key=api_key)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1800,
+        max_tokens=2200,
         system=system,
         messages=[{"role": "user", "content": user}],
     )
