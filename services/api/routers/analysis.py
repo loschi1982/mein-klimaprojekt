@@ -83,17 +83,22 @@ def analysis_series(
         raise HTTPException(status_code=404, detail={"code": "DATA_NOT_FOUND", "message": str(e)})
 
     source = SOURCES[source_id]
-    return ApiResponse(
-        data={
-            "source_id": source_id,
-            "name": source.name,
-            "unit": source.unit,
-            "source_url": source.source_url,
-            "count": len(series_raw),
-            "series": [{"date": d, "value": v} for d, v in series_raw],
-        },
-        meta=meta(),
-    )
+    baselines = {
+        "nasa_giss_global": "1951–1980",
+        "berkeley_earth_global": "1951–1980",
+        "csiro_sea_level": "1990",
+    }
+    payload = {
+        "source_id": source_id,
+        "name": source.name,
+        "unit": source.unit,
+        "source_url": source.source_url,
+        "count": len(series_raw),
+        "series": [{"date": d, "value": v} for d, v in series_raw],
+    }
+    if source_id in baselines:
+        payload["baseline"] = baselines[source_id]
+    return ApiResponse(data=payload, meta=meta())
 
 
 @router.get("/co2/stats", response_model=ApiResponse, summary="CO₂-Statistik")

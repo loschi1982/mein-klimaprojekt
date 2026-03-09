@@ -36,7 +36,11 @@ vi.mock('../api/client', () => ({
 beforeEach(() => {
   global.fetch = vi.fn().mockResolvedValue({
     json: () => Promise.resolve({ features: [
-      { type: 'Feature', properties: { NAME: 'Germany', LABEL_Y: 51 }, geometry: {} },
+      {
+        type: 'Feature',
+        properties: { NAME: 'Germany' },
+        geometry: { type: 'Polygon', coordinates: [[[10, 47], [15, 47], [15, 55], [10, 55], [10, 47]]] },
+      },
     ] }),
   })
 })
@@ -97,6 +101,20 @@ describe('GlobeView', () => {
     const slider = screen.getByRole('slider')
     fireEvent.change(slider, { target: { value: '1990' } })
     expect(screen.getAllByText('1990').length).toBeGreaterThan(0)
+  })
+
+  it('zeigt Referenzperiode 1951–1980', async () => {
+    render(<GlobeView />)
+    await waitFor(() => expect(screen.getAllByText(/1951/).length).toBeGreaterThan(0))
+  })
+
+  it('zeigt Anomalie-Erklärung', async () => {
+    render(<GlobeView />)
+    await waitFor(() => {
+      const el = document.querySelector('.anomaly-info')
+      expect(el).toBeTruthy()
+      expect(el.textContent).toMatch(/Referenzperiode/i)
+    })
   })
 
   it('Play-Button wechselt zu Pause', async () => {
