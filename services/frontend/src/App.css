@@ -1835,3 +1835,63 @@ body {
 .scan-result-actions {
   flex-shrink: 0;
 }
+
+/* Highlight-Karten (Auf einen Blick) */
+.scan-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #080f1c;
+  border-bottom: 1px solid #1e293b;
+}
+
+.scan-highlight-card {
+  background: #0f172a;
+  border: 1px solid #1e3a5f;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: border-color 0.2s;
+}
+
+.scan-highlight-card:hover {
+  border-color: #3b82f6;
+}
+
+.scan-highlight-prefix {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.scan-highlight-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #60a5fa;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.scan-highlight-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+/* Publikationsjahr-Chart */
+.scan-year-chart {
+  padding: 0.75rem 1.25rem 0.5rem;
+  border-bottom: 1px solid #1e293b;
+  background: #070f1c;
+}
+
+.scan-year-chart-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
