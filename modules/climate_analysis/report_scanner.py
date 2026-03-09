@@ -136,24 +136,70 @@ def _fetch_openalex(query: str, max_papers: int) -> list[ScientificPaper]:
 
 # ── Zusammenfassung ────────────────────────────────────────────────────────────
 
+def _extract_key_sentences(abstract: str, max_chars: int = 300) -> str:
+    """Extrahiert erste und letzte Sätze eines Abstracts als Kernerkenntnis."""
+    sentences = [s.strip() for s in abstract.replace("\n", " ").split(". ") if s.strip()]
+    if not sentences:
+        return abstract[:max_chars]
+    if len(sentences) == 1:
+        return sentences[0][:max_chars]
+    first = sentences[0]
+    last = sentences[-1]
+    combined = f"{first}. {last}"
+    if len(combined) <= max_chars:
+        return combined
+    return first[:max_chars] + "…"
+
+
 def _rule_summary(papers: list[ScientificPaper], topic: str) -> str:
-    """Regelbasierte Zusammenfassung ohne LLM."""
+    """Strukturierte deutschsprachige Zusammenfassung ohne LLM."""
+    n = len(papers)
+    year_range = ""
+    years = [p.year for p in papers if p.year]
+    if years:
+        year_range = f" (Publikationszeitraum: {min(years)}–{max(years)})"
+
     lines = [
         f"## Wissenschaftlicher Überblick: {topic}\n",
-        f"Basierend auf {len(papers)} wissenschaftlichen Fachartikeln "
-        f"(Quelle: OpenAlex / zitiert nach Häufigkeit sortiert):\n",
+        f"### Einleitung\n",
+        f"Die folgende Übersicht basiert auf {n} wissenschaftlichen Fachartikeln{year_range}, "
+        f"die nach Zitationshäufigkeit ausgewählt wurden (Quelle: OpenAlex). "
+        f"Die Artikel untersuchen verschiedene Aspekte des Themas und liefern wichtige Erkenntnisse "
+        f"für das Verständnis klimatischer Zusammenhänge.\n",
+        f"### Haupterkenntnisse\n",
     ]
+
     for i, p in enumerate(papers, 1):
         authors_str = ", ".join(p.authors[:3])
         if len(p.authors) > 3:
             authors_str += " et al."
         year_str = str(p.year) if p.year else "k.J."
-        lines.append(f"### [Artikel {i}] {p.title} ({year_str})")
-        lines.append(f"**Autoren:** {authors_str or 'unbekannt'}")
+        key_finding = _extract_key_sentences(p.abstract, max_chars=400)
+        lines.append(f"**[Artikel {i}]** {p.title} ({year_str})")
+        lines.append(f"*{authors_str or 'Autoren unbekannt'}*\n")
+        lines.append(f"{key_finding}\n")
+
+    lines.append("### Fazit\n")
+    lines.append(
+        f"Die ausgewerteten {n} Studien beleuchten das Thema \"{topic}\" aus "
+        f"unterschiedlichen wissenschaftlichen Perspektiven. "
+        f"Die Artikel stammen aus begutachteten Fachzeitschriften und wurden nach "
+        f"wissenschaftlicher Relevanz (Zitationshäufigkeit) ausgewählt. "
+        f"Für eine vollständige deutschsprachige KI-Auswertung dieser Quellen "
+        f"kann ein Anthropic API-Schlüssel (ANTHROPIC_API_KEY) konfiguriert werden.\n"
+    )
+
+    lines.append("**Quellen**")
+    for i, p in enumerate(papers, 1):
+        authors_str = ", ".join(p.authors[:2])
+        if len(p.authors) > 2:
+            authors_str += " et al."
+        year_str = str(p.year) if p.year else "k.J."
         if p.url:
-            lines.append(f"**Quelle:** {p.url}")
-        snippet = p.abstract[:500] + "…" if len(p.abstract) > 500 else p.abstract
-        lines.append(f"\n{snippet}\n")
+            lines.append(f"{i}. {p.title} ({year_str}) – {authors_str or 'unbekannt'} – [{p.url}]({p.url})")
+        else:
+            lines.append(f"{i}. {p.title} ({year_str}) – {authors_str or 'unbekannt'}")
+
     return "\n".join(lines)
 
 
