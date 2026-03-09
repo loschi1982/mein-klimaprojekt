@@ -403,20 +403,29 @@ def run_pipeline(source_id: str) -> dict:
 
         result["normalized_file"] = normalized.name
 
-        validation: ValidationResult = validate_csv(normalized)
-        result["validation"] = {
-            "valid": validation.valid,
-            "rows": validation.row_count,
-            "errors": validation.errors,
-            "warnings": validation.warnings,
-        }
-        result["rows"] = validation.row_count
-
-        if validation.valid:
+        if normalized.suffix == ".json":
+            import json
+            with open(normalized) as f:
+                data = json.load(f)
+            row_count = len(data.get("data", []))
+            result["validation"] = {"valid": True, "rows": row_count, "errors": [], "warnings": []}
+            result["rows"] = row_count
             result["status"] = "done"
         else:
-            result["status"] = "validation_failed"
-            result["errors"] = validation.errors
+            validation: ValidationResult = validate_csv(normalized)
+            result["validation"] = {
+                "valid": validation.valid,
+                "rows": validation.row_count,
+                "errors": validation.errors,
+                "warnings": validation.warnings,
+            }
+            result["rows"] = validation.row_count
+
+            if validation.valid:
+                result["status"] = "done"
+            else:
+                result["status"] = "validation_failed"
+                result["errors"] = validation.errors
 
     except Exception as e:
         result["errors"].append(str(e))
