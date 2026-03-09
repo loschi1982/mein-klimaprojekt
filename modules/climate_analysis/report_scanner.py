@@ -258,9 +258,6 @@ def _llm_summary(papers: list[ScientificPaper], topic: str, api_key: str) -> str
 # ── Haupt-Klasse ──────────────────────────────────────────────────────────────
 
 class ReportScanner:
-    def __init__(self) -> None:
-        self.api_key = os.environ.get("ANTHROPIC_API_KEY")
-
     def scan(self, topic: str, max_papers: int = 5) -> ScanResult:
         """Sucht Fachartikel und generiert einen quellenbasierten Bericht."""
         papers = _fetch_openalex(topic, max_papers)
@@ -277,10 +274,11 @@ class ReportScanner:
                 used_llm=False,
             )
 
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         used_llm = False
-        if self.api_key:
+        if api_key:
             try:
-                summary = _llm_summary(papers, topic, self.api_key)
+                summary = _llm_summary(papers, topic, api_key)
                 used_llm = True
             except Exception:
                 summary = _rule_summary(papers, topic)

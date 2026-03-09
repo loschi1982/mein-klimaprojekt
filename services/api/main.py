@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # .env laden (ANTHROPIC_API_KEY u.a.) – ignoriert, wenn keine Datei vorhanden
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent.parent / ".env", override=True)
 
 from datetime import datetime, timezone
 from fastapi import FastAPI
