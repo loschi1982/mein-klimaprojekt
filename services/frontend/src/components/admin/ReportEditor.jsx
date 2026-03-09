@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { fetchAgentReport, fetchReports, saveReport, updateReport, deleteReport } from '../../api/client'
+import { fetchAgentReport, fetchReports, saveReport, updateReport, deleteReport, publishReport } from '../../api/client'
 
 const SOURCE_OPTIONS = [
   { id: 'esrl_mauna_loa', label: 'CO₂ – Mauna Loa' },
@@ -68,6 +68,7 @@ function WysiwygToolbar({ editorRef }) {
 
 function ReportsList({ reports, onEdit, onDelete, onRefresh }) {
   const [deleting, setDeleting] = useState(null)
+  const [publishing, setPublishing] = useState(null)
 
   async function handleDelete(id) {
     setDeleting(id)
@@ -76,6 +77,16 @@ function ReportsList({ reports, onEdit, onDelete, onRefresh }) {
       onRefresh()
     } finally {
       setDeleting(null)
+    }
+  }
+
+  async function handlePublish(r) {
+    setPublishing(r.id)
+    try {
+      await publishReport(r.id, !r.published)
+      onRefresh()
+    } finally {
+      setPublishing(null)
     }
   }
 
@@ -93,6 +104,10 @@ function ReportsList({ reports, onEdit, onDelete, onRefresh }) {
               {SOURCE_OPTIONS.find(s => s.id === r.source_id)?.label ?? r.source_id}
               {' · '}
               {new Date(r.updated_at).toLocaleDateString('de-DE')}
+              {' · '}
+              <span className={`report-published-badge report-published-badge--${r.published ? 'on' : 'off'}`}>
+                {r.published ? '● Veröffentlicht' : '○ Entwurf'}
+              </span>
             </span>
             {r.tags.length > 0 && (
               <div className="report-item-tags">
@@ -101,6 +116,13 @@ function ReportsList({ reports, onEdit, onDelete, onRefresh }) {
             )}
           </div>
           <div className="report-item-actions">
+            <button
+              className={`btn-sm ${r.published ? 'btn-warning' : 'btn-publish'}`}
+              onClick={() => handlePublish(r)}
+              disabled={publishing === r.id}
+            >
+              {publishing === r.id ? '…' : r.published ? 'Zurückziehen' : 'Veröffentlichen'}
+            </button>
             <button className="btn-sm btn-secondary" onClick={() => onEdit(r)}>Bearbeiten</button>
             <button
               className="btn-sm btn-danger"

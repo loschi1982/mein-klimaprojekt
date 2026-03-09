@@ -10,6 +10,8 @@ import AnomalyChart from './components/AnomalyChart'
 import AdminPanel from './components/AdminPanel'
 import GlobeView from './components/GlobeView'
 import ChatWidget from './components/ChatWidget'
+import ReportsPage from './components/ReportsPage'
+import ReportDetail from './components/ReportDetail'
 import './App.css'
 
 // Views die ClimateSeriesChart verwenden (sourceId → backend source_id)
@@ -25,7 +27,7 @@ function Dashboard() {
   const viewId = currentView.id
   const [fromYear, toYear] = timeRange
 
-  const showSlider = !['admin', 'simulation', 'globe'].includes(viewId)
+  const showSlider = !['admin', 'simulation', 'globe', 'reports', 'report_detail'].includes(viewId)
 
   return (
     <div className="app">
@@ -69,6 +71,8 @@ function Dashboard() {
           {viewId === 'simulation' && <SimulationChart years={75} />}
           {viewId === 'stats' && <StatsPanel />}
           {viewId === 'anomalies' && <AnomalyChart threshold={2.0} />}
+          {viewId === 'reports' && <ReportsPage />}
+          {viewId === 'report_detail' && <ReportDetail reportId={currentView.reportId} />}
           {viewId === 'admin' && <AdminPanel />}
         </section>
       </main>

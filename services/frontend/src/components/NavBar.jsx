@@ -31,6 +31,11 @@ export const NAV_ITEMS = [
     ],
   },
   {
+    id: 'reports',
+    label: '📰 Berichte',
+    children: null,
+  },
+  {
     id: 'admin',
     label: '⚙ Admin',
     children: null,

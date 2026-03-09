@@ -94,4 +94,14 @@ export const fetchScanTopics = () =>
 export const scanReports = (topic, maxPapers = 5) =>
   api.post('/api/v1/admin/scan-reports', { topic, max_papers: maxPapers }).then(r => r.data.data)
 
+export const publishReport = (reportId, published) =>
+  api.patch(`/api/v1/admin/reports/${reportId}/publish`, { published }).then(r => r.data.data)
+
+// Öffentliche Berichte (kein Admin-Auth)
+export const fetchPublishedReports = () =>
+  api.get('/api/v1/reports').then(r => r.data.data)
+
+export const fetchPublishedReport = (reportId) =>
+  api.get(`/api/v1/reports/${reportId}`).then(r => r.data.data)
+
 export default api
