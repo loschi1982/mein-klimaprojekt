@@ -3,6 +3,7 @@ import LoginForm from './admin/LoginForm'
 import DataSourcesManager from './admin/DataSourcesManager'
 import DatasetsOverview from './admin/DatasetsOverview'
 import ReportEditor from './admin/ReportEditor'
+import ReportScanner from './admin/ReportScanner'
 
 function isAuthenticated() {
   return sessionStorage.getItem('admin_auth') === '1'
@@ -11,6 +12,7 @@ function isAuthenticated() {
 const TABS = [
   { id: 'data', label: 'Datenquellen' },
   { id: 'reports', label: 'KI-Berichte' },
+  { id: 'scan', label: '🔍 Literatur-Scan' },
 ]
 
 export default function AdminPanel() {
@@ -57,6 +59,7 @@ export default function AdminPanel() {
         </>
       )}
       {activeTab === 'reports' && <ReportEditor />}
+      {activeTab === 'scan' && <ReportScanner />}
     </div>
   )
 }
