@@ -45,6 +45,10 @@ class ReportSaveRequest(BaseModel):
     tags: list[str] = []
 
 
+class PublishRequest(BaseModel):
+    published: bool
+
+
 # ── Endpunkte ─────────────────────────────────────────────────────────────────
 
 @router.get("/scan-topics", response_model=ApiResponse, summary="Vordefinierte Suchthemen")
@@ -97,6 +101,7 @@ def list_reports():
                 "title": data["title"],
                 "source_id": data.get("source_id", ""),
                 "tags": data.get("tags", []),
+                "published": data.get("published", False),
                 "created_at": data["created_at"],
                 "updated_at": data.get("updated_at", data["created_at"]),
             })
@@ -117,6 +122,7 @@ def save_report(req: ReportSaveRequest):
         "content": req.content,
         "source_id": req.source_id,
         "tags": req.tags,
+        "published": False,
         "created_at": now,
         "updated_at": now,
     }
@@ -142,6 +148,16 @@ def update_report(report_id: str, req: ReportSaveRequest):
     report["updated_at"] = datetime.now(timezone.utc).isoformat()
     (REPORTS_DIR / f"{report_id}.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
     return ApiResponse(data={"id": report_id, "updated_at": report["updated_at"]}, meta=_meta())
+
+
+@router.patch("/reports/{report_id}/publish", response_model=ApiResponse, summary="Bericht veröffentlichen / zurückziehen")
+def publish_report(report_id: str, req: PublishRequest):
+    """Setzt den Veröffentlichungsstatus eines Berichts."""
+    report = _load_report(report_id)
+    report["published"] = req.published
+    report["updated_at"] = datetime.now(timezone.utc).isoformat()
+    (REPORTS_DIR / f"{report_id}.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    return ApiResponse(data={"id": report_id, "published": req.published}, meta=_meta())
 
 
 @router.delete("/reports/{report_id}", response_model=ApiResponse, summary="Bericht löschen")
