@@ -40,6 +40,7 @@ const SOURCE_META = {
     color: '#fb923c',
     sourceLabel: 'Berkeley Earth',
     sourceUrl: 'https://berkeleyearth.org/data/',
+    baseline: '1951–1980',
     refLines: [
       { y: 1.5, color: '#f59e0b', label: '+1,5 °C (Paris-Ziel)' },
       { y: 2.0, color: '#ef4444', label: '+2,0 °C' },
@@ -111,6 +112,7 @@ export default function ClimateSeriesChart({ sourceId, fromYear, toYear }) {
   const unit = meta?.unit ?? ''
   const lastVal = data[data.length - 1]?.value
   const lastYear = data[data.length - 1]?.date
+  const baseline = meta?.baseline ?? cfg.baseline ?? null
 
   return (
     <div className="chart-container">
@@ -118,11 +120,20 @@ export default function ClimateSeriesChart({ sourceId, fromYear, toYear }) {
         <div>
           <h2 className="chart-title">{cfg.title}</h2>
           <p className="chart-subtitle">
-            Jährliche Mittelwerte · Einheit: {unit} · Quelle:{' '}
+            Jährliche Mittelwerte · Einheit: {unit}
+            {baseline && <> · <strong>Referenzperiode {baseline}</strong></>}
+            {' · '}Quelle:{' '}
             <a href={cfg.sourceUrl} target="_blank" rel="noreferrer" className="source-link">
               {cfg.sourceLabel}
             </a>
           </p>
+          {baseline && (
+            <p className="anomaly-info">
+              <span className="anomaly-info-icon">ℹ</span>
+              Eine <strong>Anomalie</strong> zeigt die Abweichung vom Mittelwert der Referenzperiode <strong>{baseline}</strong>.
+              Positive Werte bedeuten wärmer, negative kühler als dieser Durchschnitt.
+            </p>
+          )}
         </div>
         {lastVal !== undefined && (
           <div className="chart-current-value">

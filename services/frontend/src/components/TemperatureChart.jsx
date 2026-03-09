@@ -68,10 +68,15 @@ export default function TemperatureChart({ fromYear, toYear, sourceUrl }) {
         <div>
           <h2 className="chart-title">Globale Temperaturanomalie (NASA GISS)</h2>
           <p className="chart-subtitle">
-            Jährliche Mittelwerte · Referenzperiode 1951–1980 · Quelle:{' '}
+            Jährliche Mittelwerte · <strong>Referenzperiode 1951–1980</strong> · Quelle:{' '}
             <a href={sourceUrl || 'https://data.giss.nasa.gov/gistemp/'} target="_blank" rel="noreferrer" className="source-link">
               NASA GISS Surface Temperature Analysis (GISTEMP v4)
             </a>
+          </p>
+          <p className="anomaly-info">
+            <span className="anomaly-info-icon">ℹ</span>
+            Eine <strong>Anomalie</strong> zeigt die Abweichung vom Mittelwert der Referenzperiode <strong>1951–1980</strong>.
+            Positive Werte bedeuten wärmer, negative kühler als dieser Durchschnitt.
           </p>
         </div>
         {lastVal !== undefined && (

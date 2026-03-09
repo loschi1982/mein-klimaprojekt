@@ -21,6 +21,22 @@ function getZoneForLat(lat) {
   return null
 }
 
+// Berechnet den Breitengrad-Schwerpunkt aus der GeoJSON-Geometrie
+function getCentroidLat(feat) {
+  const geom = feat.geometry
+  if (!geom) return null
+  const ring = geom.type === 'Polygon'
+    ? geom.coordinates[0]
+    : geom.type === 'MultiPolygon'
+    ? geom.coordinates.reduce((best, poly) => {
+        const r = poly[0]
+        return r.length > (best?.length ?? 0) ? r : best
+      }, null)
+    : null
+  if (!ring?.length) return null
+  return ring.reduce((sum, [, lat]) => sum + lat, 0) / ring.length
+}
+
 // Color scale: blue (cold) → white (neutral) → red (warm)
 function anomalyColor(value) {
   if (value === null || value === undefined) return 'rgba(128,128,128,0.3)'
@@ -105,15 +121,15 @@ export default function GlobeView() {
 
   // Color countries by their latitude zone
   const getCountryColor = useCallback((feat) => {
-    const lat = feat.properties?.LABEL_Y ?? feat.properties?.LAT ?? null
+    const lat = getCentroidLat(feat)
     if (lat === null) return 'rgba(128,128,128,0.3)'
     const zone = getZoneForLat(lat)
-    if (!zone || currentZones[zone] === null) return 'rgba(128,128,128,0.3)'
+    if (!zone || currentZones[zone] == null) return 'rgba(128,128,128,0.3)'
     return anomalyColor(currentZones[zone])
   }, [year, zonalData]) // eslint-disable-line
 
   const getCountryLabel = useCallback((feat) => {
-    const lat = feat.properties?.LABEL_Y ?? null
+    const lat = getCentroidLat(feat)
     const zone = lat !== null ? getZoneForLat(lat) : null
     const val = zone ? currentZones[zone] : null
     const anomaly = val !== null ? `${val > 0 ? '+' : ''}${val.toFixed(2)} °C` : 'k.A.'
@@ -136,7 +152,12 @@ export default function GlobeView() {
     <div className="globe-view">
       <div className="globe-header">
         <h2>3D-Globus: Zonale Temperaturanomalien</h2>
-        <p className="globe-subtitle">NASA GISS · Referenz 1951–1980 · Jahr: <strong>{year}</strong></p>
+        <p className="globe-subtitle">NASA GISS · Referenzperiode 1951–1980 · Jahr: <strong>{year}</strong></p>
+        <p className="anomaly-info">
+          <span className="anomaly-info-icon">ℹ</span>
+          Eine <strong>Temperaturanomalie</strong> gibt an, um wie viel °C die Temperatur vom Mittelwert der Referenzperiode <strong>1951–1980</strong> abweicht.
+          Rot = wärmer, Blau = kühler als dieser Durchschnitt.
+        </p>
       </div>
 
       <div className="globe-controls">
