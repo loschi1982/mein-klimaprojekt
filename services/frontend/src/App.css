@@ -1577,3 +1577,30 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Anomalie-Erklärung */
+.anomaly-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  background: #0f172a;
+  border-left: 3px solid #334155;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.35rem;
+  max-width: 680px;
+  line-height: 1.45;
+}
+
+.anomaly-info strong {
+  color: #cbd5e1;
+}
+
+.anomaly-info-icon {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  flex-shrink: 0;
+  margin-top: 1px;
+}

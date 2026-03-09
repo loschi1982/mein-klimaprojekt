@@ -56,6 +56,22 @@ describe('TemperatureChart', () => {
     })
   })
 
+  it('zeigt Referenzperiode 1951–1980', async () => {
+    vi.spyOn(client, 'fetchTemperature').mockResolvedValue(MOCK_DATA)
+    render(<TemperatureChart fromYear={1960} toYear={2024} />)
+    await waitFor(() => {
+      expect(screen.getAllByText(/1951/).length).toBeGreaterThan(0)
+    })
+  })
+
+  it('zeigt Anomalie-Erklärung', async () => {
+    vi.spyOn(client, 'fetchTemperature').mockResolvedValue(MOCK_DATA)
+    render(<TemperatureChart fromYear={1960} toYear={2024} />)
+    await waitFor(() => {
+      expect(screen.getByText(/Abweichung vom Mittelwert/i)).toBeInTheDocument()
+    })
+  })
+
   it('ruft fetchTemperature mit korrekten Datumsgrenzen auf', async () => {
     const spy = vi.spyOn(client, 'fetchTemperature').mockResolvedValue(MOCK_DATA)
     render(<TemperatureChart fromYear={1980} toYear={2020} />)
