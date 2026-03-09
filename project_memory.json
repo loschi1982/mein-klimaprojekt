@@ -1,81 +1,143 @@
 {
   "project": {
     "name": "mein-klimaprojekt",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "started": "2026-03-08T00:00:00Z",
-    "status": "active"
+    "status": "active",
+    "last_update": "2026-03-09T00:00:00Z"
   },
   "teams": {
     "data-ingestion": {
       "branch": "team/data-ingestion",
-      "status": "in-progress",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
-      "open_tasks": ["CO2-Daten von ESRL/Mauna Loa abrufen", "Normalisierung implementieren"],
-      "decisions": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "Ingester-Pipeline (run_pipeline, list_datasets, list_available_sources)",
+        "CSV-Normalisierung und Validierung",
+        "JSON-Sonderbehandlung (skip validate_csv für .json-Dateien)",
+        "7 Datenquellen implementiert: co2_mauna_loa, esrl_co2_global, esrl_ch4, berkeley_earth_global, csiro_sea_level, nasa_giss_global, nasa_giss_zonal",
+        "CSIRO-URL auf GitHub-Mirror aktualisiert (cmar.csiro.au → raw.githubusercontent.com)",
+        "Admin-Endpunkte: GET /api/v1/admin/sources, POST /api/v1/admin/import"
+      ],
+      "open_tasks": [],
+      "decisions": [
+        "NASA GISS Zonal wird als JSON gespeichert, nicht als CSV",
+        "CSIRO-Daten vom GitHub-Mirror datasets/sea-level-rise"
+      ],
       "blockers": []
     },
     "climate-analysis": {
       "branch": "team/climate-analysis",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "GET /api/v1/analysis/series?source= – universeller Serien-Endpunkt",
+        "GET /api/v1/analysis/zones?source= – Zonen-Endpunkt für NASA GISS Zonal",
+        "Baseline-Felder in API-Antworten (1951–1980 für NASA/Berkeley, 1990 für CSIRO)",
+        "ReportScanner: OpenAlex-Suche + Claude-LLM-Bericht + deutschsprachiger Regelfall",
+        "GET /api/v1/admin/scan-topics – vordefinierte Suchthemen",
+        "POST /api/v1/admin/scan-reports – Literatur-Scan auslösen",
+        "5 voreingestellte Nordhalb­kugel-Themen (Arctic Amplification, Jet Stream, Permafrost, ...)"
+      ],
       "open_tasks": [],
-      "decisions": [],
+      "decisions": [
+        "Regelbasierter Fallback extrahiert Kernsätze aus englischen Abstracts und rahmt sie auf Deutsch",
+        "LLM-Bericht mit Claude claude-sonnet-4-6, streng quellenbasiert (kein Eigenwissen)"
+      ],
       "blockers": []
     },
     "visualization": {
       "branch": "team/visualization",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
-      "open_tasks": ["Erste CO2-Zeitreihengrafik als React-Komponente"],
-      "decisions": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "ClimateSeriesChart – universeller Zeitreihen-Chart (CO₂, CH₄, Meeresspiegel, Temperatur)",
+        "TemperatureChart – NASA GISS globale Temperaturanomalien",
+        "GlobeView – 3D-Globus mit zonaler Heatmap (Centroid-Berechnung aus GeoJSON-Polygonen)",
+        "Anomalie-Erklärungstext (Bezugszeitraum dynamisch aus API-Antwort)",
+        "GET /api/v1/charts/{chart_id} – Chart-Konfigurationen"
+      ],
+      "open_tasks": [],
+      "decisions": [
+        "GlobeView nutzt getCentroidLat() statt LABEL_Y/LAT (vasturiano-GeoJSON hat diese Properties nicht)",
+        "Baseline-Anzeige dynamisch: meta?.baseline ?? cfg.baseline"
+      ],
       "blockers": []
     },
     "simulation": {
       "branch": "team/simulation",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "POST /api/v1/simulate – Klimasimulation mit RCP-Szenarien",
+        "GET /api/v1/scenarios – verfügbare Szenarien auflisten"
+      ],
       "open_tasks": [],
       "decisions": [],
       "blockers": []
     },
     "knowledge-base": {
       "branch": "team/knowledge-base",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "GET /api/v1/knowledge/{topic} – Wissensbeitrag abrufen",
+        "memory/knowledge_base.json mit 4 Einträgen (CO₂, Mauna Loa, RCP-Szenarien, 350ppm)"
+      ],
       "open_tasks": [],
       "decisions": [],
       "blockers": []
     },
     "ai-explanation": {
       "branch": "team/ai-explanation",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "POST /api/v1/explain – Claude-gestützte Datenpunkt-Erklärung",
+        "POST /api/v1/chat – KI-Chat-Widget (Claude claude-sonnet-4-6, Klimakontext)",
+        "ChatWidget React-Komponente mit Verlauf, Scroll-Behaviour, Lade-Indikator"
+      ],
       "open_tasks": [],
-      "decisions": [],
+      "decisions": [
+        "Chat-Systemkontext enthält aktuelle Klimadaten aus der Datenbank"
+      ],
       "blockers": []
     },
     "frontend": {
       "branch": "team/frontend",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "React 19 + Vite App",
+        "Dashboard mit ClimateSeriesChart, TemperatureChart, GlobeView",
+        "AdminPanel mit Tabs: Datenquellen, Berichte, KI-Chat, Literatur-Scan",
+        "ReportScanner-Komponente (Markdown-Rendering, Artikel-Karten, DOI-Links, Speichern)",
+        "ChatWidget-Komponente",
+        "api/client.js mit fetchScanTopics, scanReports, saveReport, sendChatMessage"
+      ],
       "open_tasks": [],
-      "decisions": [],
+      "decisions": [
+        "Frontend läuft auf Port 5173 (Vite Dev Server)",
+        "CORS: nur http://localhost:5173 erlaubt"
+      ],
       "blockers": []
     },
     "api": {
       "branch": "team/api",
-      "status": "not-started",
-      "last_update": "2026-03-08T00:00:00Z",
-      "completed_tasks": [],
-      "open_tasks": ["FastAPI-Grundgerüst", "Health-Check-Endpunkt"],
-      "decisions": [],
+      "status": "done",
+      "last_update": "2026-03-09T00:00:00Z",
+      "completed_tasks": [
+        "FastAPI-Grundgerüst auf Port 8001 (nicht 8000)",
+        "GET /api/v1/health",
+        "Alle 8 Router eingebunden: ingest, analysis, charts, simulation, explain, knowledge, admin, chat",
+        "load_dotenv() beim Start für ANTHROPIC_API_KEY",
+        ".env.example erstellt"
+      ],
+      "open_tasks": [],
+      "decisions": [
+        "Server läuft auf Port 8001 (nicht Standard-8000)",
+        "Starten: uvicorn main:app --host 0.0.0.0 --port 8001 --reload im Verzeichnis services/api"
+      ],
       "blockers": []
     }
   },
@@ -89,26 +151,41 @@
       "ai_explanation"
     ],
     "api_version": "v1",
-    "data_schema_version": "1.0"
+    "api_port": 8001,
+    "frontend_port": 5173,
+    "data_schema_version": "1.0",
+    "llm_model": "claude-sonnet-4-6",
+    "env_vars": ["ANTHROPIC_API_KEY"]
   },
   "data_sources": [
-    {"name": "NOAA NCEI", "type": "REST API", "format": "JSON", "team": "data-ingestion"},
-    {"name": "ESRL/GML (Mauna Loa)", "type": "CSV Download", "format": "CSV", "team": "data-ingestion"},
-    {"name": "NSIDC", "type": "File Download", "format": "NetCDF/CSV", "team": "data-ingestion"},
-    {"name": "Copernicus", "type": "REST API", "format": "NetCDF", "team": "data-ingestion"}
+    {"id": "co2_mauna_loa", "name": "ESRL/GML Mauna Loa CO₂", "format": "CSV", "status": "active"},
+    {"id": "esrl_co2_global", "name": "ESRL Globales CO₂", "format": "CSV", "status": "active"},
+    {"id": "esrl_ch4", "name": "ESRL Methan CH₄", "format": "CSV", "status": "active"},
+    {"id": "berkeley_earth_global", "name": "Berkeley Earth Temperatur", "format": "CSV", "status": "active", "baseline": "1951-1980"},
+    {"id": "csiro_sea_level", "name": "CSIRO Meeresspiegel", "format": "CSV", "status": "active", "baseline": "1990", "url_mirror": "raw.githubusercontent.com/datasets/sea-level-rise"},
+    {"id": "nasa_giss_global", "name": "NASA GISS Globale Temp.-Anomalien", "format": "CSV", "status": "active", "baseline": "1951-1980"},
+    {"id": "nasa_giss_zonal", "name": "NASA GISS Zonale Temp.-Anomalien", "format": "JSON", "status": "active", "baseline": "1951-1980"}
   ],
   "milestones": [
     {
       "phase": 1,
       "name": "Grundgerüst",
-      "teams": ["data-ingestion", "api", "visualization"],
-      "definition_of_done": [
-        "Unit Tests >80% Coverage",
-        "APIs erreichbar unter localhost:8000/docs",
-        "Pull Requests nach develop geöffnet und reviewed",
-        "project_memory.json aktualisiert"
-      ],
-      "status": "in-progress"
+      "status": "done"
+    },
+    {
+      "phase": 2,
+      "name": "Datenquellen & Analyse",
+      "status": "done"
+    },
+    {
+      "phase": 3,
+      "name": "Visualisierung & Globus",
+      "status": "done"
+    },
+    {
+      "phase": 4,
+      "name": "KI-Features (Chat, Berichte, Literatur-Scan)",
+      "status": "done"
     }
   ]
 }
